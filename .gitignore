@@ -1,0 +1,6 @@
+dist/
+build/
+cc_pathlib.egg-info
+*.pyc
+*.pyo
+*.orig

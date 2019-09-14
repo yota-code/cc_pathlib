@@ -9,7 +9,7 @@ setuptools.setup(
     version="0.0.5",
     author="Yoochan",
     author_email="yota.news@gmail.com",
-    description="an extended version of pathlib",
+    description="supercharged implementation of pathlib.Path()",
     long_description=Path("README.md").read_text(),
     long_description_content_type="text/markdown",
     url="https://bitbucket.org/yoochan/pypi-ccpathlib",

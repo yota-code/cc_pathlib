@@ -4,4 +4,10 @@ rm ./dist/*.whl
 rm ./dist/*.tar.gz
 
 python3 setup.py sdist bdist_wheel
-python3 -m twine upload dist/*
+
+if [[ $1 == 'release' ]]
+then
+	python3 -m twine upload dist/*
+else
+	python3 -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+fi

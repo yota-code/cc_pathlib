@@ -9,7 +9,6 @@ import subprocess
 
 import brotli
 
-import cc_pathlib.proc
 import cc_pathlib.filter.cc_json
 import cc_pathlib.filter.cc_pickle
 import cc_pathlib.filter.tsv
@@ -65,12 +64,12 @@ class Path(type(pathlib.Path())) :
 			cmd = ['tar', '--create', '--file', tar_pth, self.name]
 			subprocess.run([str(i) for i in cmd], cwd=self.parent)
 			cmd = ['lzip', '--best', tar_pth]
-			cc_pathlib.proc.run([str(i) for i in cmd], cwd=self.parent)
+			subprocess.run([str(i) for i in cmd], cwd=self.parent)
 			if delete_original :
 				self.delete()
 		elif self.is_file() :
 			cmd = ['lzip', '--best', self]
-			cc_pathlib.proc.run([str(i) for i in cmd])
+			subprocess.run([str(i) for i in cmd])
 			self.rename(dst_dir / dst_name)
 			if delete_original :
 				self.unlink()
@@ -78,7 +77,8 @@ class Path(type(pathlib.Path())) :
 			raise ValueError("can not be archived: {0}".format(self))
 
 	def unarchive(self) :
-		cc_pathlib.proc.run('tar', '--extract', '--file', self.name, cwd=self.parent)
+		cmd = ['tar', '--extract', '--file', self.name]
+		subprocess.run([str(i) for i in cmd], cwd=self.parent)
 
 	def delete(self, content_only=False) :
 		if not self.is_dir() :

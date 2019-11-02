@@ -6,7 +6,7 @@ from pathlib import Path
 
 setuptools.setup(
     name="cc-pathlib",
-    version="0.0.5",
+    version="0.0.6",
     author="Yoochan",
     author_email="yota.news@gmail.com",
     description="supercharged implementation of pathlib.Path()",

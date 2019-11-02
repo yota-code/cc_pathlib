@@ -181,7 +181,6 @@ class Path(type(pathlib.Path())) :
 
 	def _save_filter(self, data, fmt, opt=None) :
 		# print("Path._save_filter({0}, {1}, {2})".format(type(data), fmt, opt))
-
 		if opt is None :
 			opt = dict()
 

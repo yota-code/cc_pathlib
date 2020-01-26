@@ -10,12 +10,6 @@ import shutil
 import subprocess
 
 import sys
-import lzma, bz2, gzip
-
-try :
-	import brotli
-	_imported_brotli = True
-except :
-	_imported_brotli = False
+import lzma, bz2, gzip, brotli
 
 from cc_pathlib.path import Path

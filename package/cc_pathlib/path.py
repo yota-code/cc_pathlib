@@ -6,6 +6,8 @@ import lzma
 import gzip
 import pathlib
 import subprocess
+import socket
+import sys
 
 import brotli
 
@@ -203,3 +205,40 @@ class Path(type(pathlib.Path())) :
 	def fname(self) :
 		s = ''.join(self.suffixes)
 		return self.name[:-len(s)]
+
+	def run(self, * cmd_lst, timeout=None, blocking=True, bg_task=False, quiet=False) :
+
+		cwd = (self).resolve()
+
+		cmd_line = list()
+		for cmd in cmd_lst :
+			if isinstance(cmd, dict) :
+				for k, v in cmd.items() :
+					cmd_line.append('--' + str(k))
+					cmd_line.append(str(v))
+			else :
+				cmd_line.append(str(cmd))
+
+		cmd_header = '\x1b[44m{0} {1}{2} $\x1b[0m '.format(
+			socket.gethostname(),
+			"{0} ".format(Path(* cwd.parts[-3:])),
+			datetime.datetime.now().strftime('%H:%M:%S')
+		)
+
+		if not quiet :
+			try :
+				cwd_rel = cwd.relative_to(self)
+			except :
+				cwd_rel = cwd
+			print(cmd_header + ' '.join(str(i) for i in cmd_line))
+
+		if bg_task :
+			subprocess.Popen(cmd_line, cwd=(str(cwd) if cwd is not None else cwd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		else :
+			ret = subprocess.run(cmd_line, cwd=(str(cwd) if cwd is not None else cwd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
+			if blocking and ret.returncode != 0 :
+				if not quiet :
+					print('\n' + ' '.join(ret.args) + '\n' + ret.stderr.decode(sys.stderr.encoding) + '\n' + '-' * 32)
+				ret.check_returncode()
+			return ret
+

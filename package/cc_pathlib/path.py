@@ -28,7 +28,7 @@ class Path(type(pathlib.Path())) :
 	}
 
 	def config(self) :
-		if self.suffix == ".json" :
+		if self.fsuffix in [".json", ".json.br"] :
 			return cc_pathlib.filter.cc_json._JSON_config_CONTEXT(self)
 		else :
 			raise NotImplementedError
@@ -108,7 +108,7 @@ class Path(type(pathlib.Path())) :
 				p.mkdir()
 				p.chmod(self._umask_dir_map[umask])
 
-	def _load_archive(self, fmt, encoding) :
+	def _load_archive(self, fmt=None, encoding=None) :
 		""" open the compressed file, return the content """
 		if fmt == '.gz' :
 			z_content = self.read_bytes()
@@ -128,6 +128,13 @@ class Path(type(pathlib.Path())) :
 			b_content = self.read_bytes()
 
 		return b_content if encoding is None else b_content.decode(encoding)
+
+	def read_file(self, encoding) :
+		""" load the content of a file without applying a filter, but decompress if needed """
+		if self.suffix in self._available_archive :
+			return self._load_archive(self.suffix, encoding)
+		else :
+			return self.read_text(encoding) if encoding is not None else self.read_bytes()
 
 	def _load_filter(self, data, fmt, opt=None) :
 		if fmt == '.tsv' :
@@ -165,7 +172,14 @@ class Path(type(pathlib.Path())) :
 
 	def _save_archive(self, data, fmt, encoding='utf-8', opt=None) :
 		# print("Path._save_archive({0})".format(fmt))
-		b_data = data if isinstance(data, bytes) else data.encode(encoding)
+
+		if isinstance(data, bytes) :
+			b_data = data
+			is_text = False
+		else :
+			b_data = data.encode(encoding)
+			is_text = True
+
 		if fmt == '.gz' :
 			z_data = gzip.compress(b_data, compresslevel=9)
 			self.write_bytes(z_data)
@@ -173,7 +187,7 @@ class Path(type(pathlib.Path())) :
 			z_data = lzma.compress(b_data, preset=9 | lzma.PRESET_EXTREME)
 			self.write_bytes(z_data)
 		elif fmt == '.br' :
-			z_data = brotli.compress(b_data)
+			z_data = brotli.compress(b_data, mode=(brotli.MODE_TEXT if is_text else brotli.MODE_GENERIC))
 			self.write_bytes(z_data)
 		elif fmt == '.lz' :
 			cmd = ['lzip', '--best', '--force', '--output', self.with_suffix('')]
@@ -205,6 +219,11 @@ class Path(type(pathlib.Path())) :
 	def fname(self) :
 		s = ''.join(self.suffixes)
 		return self.name[:-len(s)]
+
+	@property
+	def fsuffix(self) :
+		s = ''.join(self.suffixes)
+		return self.name[-len(s):]
 
 	def run(self, * cmd_lst, timeout=None, blocking=True, bg_task=False, quiet=False) :
 

@@ -6,7 +6,10 @@ import datetime
 class JSONCustomEncoder(json.JSONEncoder):
 	def default(self, obj):
 		if isinstance(obj, set) :
-			return sorted(obj)
+			try :
+				return sorted(obj)
+			except TypeError :
+				return list(obj)
 		elif isinstance(obj, datetime.datetime) :
 			return obj.isoformat()
 		else:

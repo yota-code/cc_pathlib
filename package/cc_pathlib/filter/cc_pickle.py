@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import pickle
+
 def pickle_to_str(obj, ** kwarg) :
 	return pickle.dumps(obj, protocol=pickle.HIGHEST_PROTOCOL)
 

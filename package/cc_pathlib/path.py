@@ -9,7 +9,10 @@ import subprocess
 import socket
 import sys
 
-import brotli
+try :
+	import brotli
+except :
+	pass
 
 import cc_pathlib.filter.cc_json
 import cc_pathlib.filter.cc_pickle
@@ -260,4 +263,4 @@ class Path(type(pathlib.Path())) :
 					print('\n' + ' '.join(ret.args) + '\n' + ret.stderr.decode(sys.stderr.encoding) + '\n' + '-' * 32)
 				ret.check_returncode()
 			return ret
-
+			

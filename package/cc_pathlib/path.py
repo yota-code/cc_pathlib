@@ -220,8 +220,7 @@ class Path(type(pathlib.Path())) :
 
 	@property
 	def fname(self) :
-		s = ''.join(self.suffixes)
-		return self.name[:-len(s)]
+		return self.name.split('.')[0]
 
 	@property
 	def fsuffix(self) :

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import bz2
 import datetime
 import lzma
 import gzip
@@ -11,6 +10,11 @@ import sys
 
 try :
 	import brotli
+except :
+	pass
+	
+try :
+	import bz2
 except :
 	pass
 

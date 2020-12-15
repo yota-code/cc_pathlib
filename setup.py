@@ -6,8 +6,8 @@ from pathlib import Path
 
 setuptools.setup(
     name="cc-pathlib",
-    version="0.0.6",
-    author="Yoochan",
+    version="0.0.9",
+    author="yoochan",
     author_email="yota.news@gmail.com",
     description="supercharged implementation of pathlib.Path()",
     long_description=Path("README.md").read_text(),
@@ -27,5 +27,5 @@ setuptools.setup(
 		"License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
 )

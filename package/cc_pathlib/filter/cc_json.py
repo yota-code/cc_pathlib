@@ -2,6 +2,7 @@
 
 import json
 import datetime
+import pathlib
 
 class JSONCustomEncoder(json.JSONEncoder):
 	def default(self, obj):
@@ -12,6 +13,8 @@ class JSONCustomEncoder(json.JSONEncoder):
 				return list(obj)
 		elif isinstance(obj, datetime.datetime) :
 			return obj.isoformat()
+		elif isinstance(obj, pathlib.Path) :
+			return str(obj)
 		else:
 			return json.JSONEncoder.default(self, obj)
 

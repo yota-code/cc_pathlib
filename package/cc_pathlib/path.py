@@ -3,6 +3,7 @@
 import datetime
 import lzma
 import gzip
+import os
 import pathlib
 import subprocess
 import socket
@@ -216,9 +217,10 @@ class Path(type(pathlib.Path())) :
 		else :
 			return data
 
-	def hardlink_to(self, target) :
+	def hardlink_at(self, link) :
+		""" self is the file we link TO, link is the name FROM """
 		if self.is_file() :
-			os.link(str(self), str(target))
+			os.link(self, link)
 		else :
 			raise ValueError("hardlink source must be a file")
 

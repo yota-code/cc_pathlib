@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 class CaseCollation() :
+	
 	def __init__(self, root_dir=Path(), logger=None) :
 		
 		self.root_dir = root_dir.resolve()

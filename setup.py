@@ -6,13 +6,13 @@ from pathlib import Path
 
 setuptools.setup(
     name="cc-pathlib",
-    version="0.0.6",
+    version="0.0.10",
     author="Yoochan",
     author_email="yota.news@gmail.com",
-    description="supercharged implementation of pathlib.Path()",
+    description="a supercharged implementation of pathlib.Path()",
     long_description=Path("README.md").read_text(),
     long_description_content_type="text/markdown",
-    url="https://bitbucket.org/yoochan/pypi-ccpathlib",
+    url="https://github.com/yota-code/cc_pathlib.git",
     packages=setuptools.find_packages(where="package"),
     package_dir={
         '' : "package",
@@ -27,5 +27,5 @@ setuptools.setup(
 		"License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
 )

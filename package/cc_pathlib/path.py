@@ -217,21 +217,23 @@ class Path(type(pathlib.Path())) :
 		else :
 			return data
 
-	def hardlink_at(self, link) :
-		""" self is the file we link TO, link is the name FROM """
-		if self.is_file() :
-			os.link(self, link)
-		else :
-			raise ValueError("hardlink source must be a file")
+	# existe à partir de python 3.8
+	# def hardlink_at(self, link) :
+	# 	""" self is the file we link TO, link is the name FROM """
+	# 	if self.is_file() :
+	# 		os.link(self, link)
+	# 	else :
+	# 		raise ValueError("hardlink source must be a file")
 
 	@property
 	def fname(self) :
+		# return the name of the file without all the extensions if many
 		return self.name.split('.')[0]
 
 	@property
 	def fsuffix(self) :
-		s = ''.join(self.suffixes)
-		return self.name[-len(s):]
+		# return all the extensions if many
+		return ''.join(self.suffixes)
 
 	def run(self, * cmd_lst, timeout=None, blocking=True, bg_task=False, quiet=False) :
 

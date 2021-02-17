@@ -217,13 +217,12 @@ class Path(type(pathlib.Path())) :
 		else :
 			return data
 
-	# existe à partir de python 3.8
-	# def hardlink_at(self, link) :
-	# 	""" self is the file we link TO, link is the name FROM """
-	# 	if self.is_file() :
-	# 		os.link(self, link)
-	# 	else :
-	# 		raise ValueError("hardlink source must be a file")
+	def hardlink_to(self, target) :
+		""" self is the file we link FROM, link is the name TO """
+		if self.is_file() :
+			os.link(target, self)
+		else :
+			raise ValueError("hardlink source must be a file")
 
 	@property
 	def fname(self) :

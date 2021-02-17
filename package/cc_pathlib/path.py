@@ -219,7 +219,7 @@ class Path(type(pathlib.Path())) :
 
 	def hardlink_to(self, target) :
 		""" self is the file we link FROM, link is the name TO """
-		if self.is_file() :
+		if target.is_file() :
 			os.link(target, self)
 		else :
 			raise ValueError("hardlink source must be a file")

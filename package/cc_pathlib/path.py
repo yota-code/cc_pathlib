@@ -222,7 +222,7 @@ class Path(type(pathlib.Path())) :
 		if target.is_file() :
 			os.link(target, self)
 		else :
-			raise ValueError("hardlink source must be a file")
+			raise ValueError("hardlink target must be a file")
 
 	@property
 	def fname(self) :

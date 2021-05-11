@@ -22,6 +22,7 @@ except :
 import cc_pathlib.filter.cc_json
 import cc_pathlib.filter.cc_pickle
 import cc_pathlib.filter.tsv
+import cc_pathlib.tool.dedup
 
 class Path(type(pathlib.Path())) :
 
@@ -233,6 +234,13 @@ class Path(type(pathlib.Path())) :
 	def fsuffix(self) :
 		# return all the extensions if many
 		return ''.join(self.suffixes)
+
+	def dedup(self, * pattern_lst) :
+		if self.is_dir() :
+			for pattern in pattern_lst :
+				cc_pathlib.tool.dedup._dedup_size_pass(self, pattern)
+		else :
+			raise ValueError("Path() must be a directory")
 
 	def run(self, * cmd_lst, timeout=None, blocking=True, bg_task=False, quiet=False) :
 

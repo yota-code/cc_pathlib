@@ -18,19 +18,23 @@ class JSONCustomEncoder(json.JSONEncoder):
 		else:
 			return json.JSONEncoder.default(self, obj)
 
-class _JSON_config_CONTEXT() :
+class _JSON_config_CONTEXT(dict) :
 	def __init__(self, pth) :
 		self.pth = pth
 
 	def __enter__(self) :
 		if not self.pth.is_file() :
-			self.obj = dict()
+			dict.__init__(self, args)
 		else :
-			self.obj = self.pth.load()
-		return self.obj
+			dict.__init__(self, self.pth.load() )
+		return self
+	
+	def sync(self) :
+		self.pth.save(self, filter_opt={"verbose":True})
 
 	def __exit__(self, exc_type, exc_value, traceback) :
-		self.pth.save(self.obj, filter_opt={"verbose":True})
+		self.pth.save(self, filter_opt={"verbose":True})
+
 
 def json_from_str(txt) :
 	return json.loads(txt)

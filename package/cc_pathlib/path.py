@@ -48,6 +48,9 @@ class Path(type(pathlib.Path())) :
 				return cc_pathlib.filter.cc_json._JSON_config_CONTEXT(self)
 		else :
 			raise NotImplementedError
+			
+	def __iter__(self) :
+		return ( x for x in self.iterdir() )
 
 	@property
 	def or_archive(self) :
@@ -219,7 +222,7 @@ class Path(type(pathlib.Path())) :
 			return data
 
 	def hardlink_to(self, target) :
-		""" self is the file we link FROM, link is the name TO """
+		""" self is the source we link FROM, target is the name TO (ie. self is created) """
 		if target.is_file() :
 			os.link(target, self)
 		else :

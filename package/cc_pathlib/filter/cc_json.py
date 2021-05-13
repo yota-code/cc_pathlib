@@ -24,9 +24,9 @@ class _JSON_config_CONTEXT(dict) :
 
 	def __enter__(self) :
 		if not self.pth.is_file() :
-			dict.__init__(self, args)
+			dict.__init__(self)
 		else :
-			dict.__init__(self, self.pth.load() )
+			dict.__init__(self, self.pth.load())
 		return self
 	
 	def sync(self) :

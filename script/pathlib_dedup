@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+
+import sys
+
+from cc_pathlib import Path
+
+root_dir = Path(sys.argv[1])

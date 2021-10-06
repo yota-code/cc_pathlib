@@ -49,8 +49,13 @@ class Path(type(pathlib.Path())) :
 		else :
 			raise NotImplementedError
 			
-	def __iter__(self) :
-		return ( x for x in self.iterdir() )
+	__iter__ = pathlib.Path.iterdir
+
+	def iter_dirs(self) :
+		return (x for x in self if x.is_dir())
+
+	def iter_files(self) :
+		return (x for x in self if x.is_file())
 
 	@property
 	def or_archive(self) :

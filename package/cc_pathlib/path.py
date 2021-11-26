@@ -8,11 +8,6 @@ import pathlib
 import subprocess
 import socket
 import sys
-
-try :
-	import brotli
-except :
-	pass
 	
 try :
 	import bz2
@@ -21,14 +16,17 @@ except :
 
 import cc_pathlib.filter.cc_json
 import cc_pathlib.filter.cc_pickle
+import cc_pathlib.filter.cc_numpy
+import cc_pathlib.filter.cc_array
 import cc_pathlib.filter.tsv
+
 import cc_pathlib.tool.dedup
 
 class Path(type(pathlib.Path())) :
 
-	_available_archive = ['.gz', '.xz', '.br', '.lz']
-	_available_filter = ['.tsv', '.json', '.txt', '.bin', '.pickle']
-	_binary_format = ['.pickle']
+	_available_archive = ['.gz', '.xz', '.br', '.lz', '.bz2']
+	_available_filter = ['.tsv', '.json', '.txt', '.bin', '.pickle', '.npy', '.arr']
+	_binary_format = ['.pickle', '.npy', '.bin', '.arr']
 
 	_umask_dir_map = {
 		'private' : 0o0700,
@@ -61,7 +59,7 @@ class Path(type(pathlib.Path())) :
 	def or_archive(self) :
 		# if an archived version of the file exists, switch to it
 		if not self.is_file() :
-			for suffixe in ['.br', '.lz', '.gz'] :
+			for suffixe in self._available_archive :
 				pth = self.parent / (self.name + suffixe)
 				if pth.is_file() :
 					return pth
@@ -134,6 +132,7 @@ class Path(type(pathlib.Path())) :
 			z_content = self.read_bytes()
 			b_content = lzma.decompress(z_content)
 		elif fmt == '.br' :
+			import brotli
 			z_content = self.read_bytes()
 			b_content = brotli.decompress(z_content)
 		elif fmt == '.lz' :
@@ -160,6 +159,14 @@ class Path(type(pathlib.Path())) :
 			return cc_pathlib.filter.cc_json.json_from_str(data)
 		elif fmt == '.pickle' :
 			return cc_pathlib.filter.cc_pickle.pickle_from_str(data)
+		elif fmt == '.npy' :
+			return cc_pathlib.filter.cc_numpy.numpy_from_bytes(data)
+		elif fmt == '.arr' :
+			s_lst = self.suffixes
+			for k in cc_pathlib.filter.cc_array.array_type_to_code_map :
+				if f'.{k}' in s_lst :
+					return cc_pathlib.filter.cc_array.array_from_bytes(data, k)
+			raise ValueError("Format not found for array encoding")
 		else :
 			return data
 
@@ -204,6 +211,7 @@ class Path(type(pathlib.Path())) :
 			z_data = lzma.compress(b_data, preset=9 | lzma.PRESET_EXTREME)
 			self.write_bytes(z_data)
 		elif fmt == '.br' :
+			import brotli
 			z_data = brotli.compress(b_data, mode=(brotli.MODE_TEXT if is_text else brotli.MODE_GENERIC))
 			self.write_bytes(z_data)
 		elif fmt == '.lz' :
@@ -223,6 +231,15 @@ class Path(type(pathlib.Path())) :
 			return cc_pathlib.filter.cc_json.json_to_str(data, ** opt)
 		elif fmt == '.pickle' :
 			return cc_pathlib.filter.cc_pickle.pickle_to_str(data, ** opt)
+		elif fmt == '.npy' :
+			return cc_pathlib.filter.cc_numpy.numpy_to_bytes(data, ** opt)
+		elif fmt == '.arr' :
+			s_lst = self.suffixes
+			for k in cc_pathlib.filter.cc_array.array_type_to_code_map :
+				if f'.{k}' in s_lst :
+					if cc_pathlib.filter.cc_array.array_type_to_code_map[k] == data.typecode :
+						return cc_pathlib.filter.cc_array.array_to_bytes(data)
+			raise ValueError("Error with typecode")
 		else :
 			return data
 

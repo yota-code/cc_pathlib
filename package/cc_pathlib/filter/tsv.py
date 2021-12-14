@@ -4,7 +4,7 @@ def tsv_from_str(txt) :
 	return [[
 		cell.replace('\\t', '\t').replace('\\n', '\n').replace('\\\\', '\\').strip()
 		for cell in row.split('\t')
-	] for row in txt.split('\n') if (row.strip() and row[0] != "#") ]
+	] for row in txt.split('\n') if row.strip() ]
 
 def tsv_to_str(obj, comment=None) :
 	"""

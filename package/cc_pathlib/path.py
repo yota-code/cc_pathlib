@@ -99,16 +99,26 @@ class Path(type(pathlib.Path())) :
 		cmd = ['tar', '--extract', '--file', self.name]
 		subprocess.run([str(i) for i in cmd], cwd=self.parent)
 
-	def delete(self, content_only=False) :
+	def delete(self) :
+		self.delete_content()
+
+		if self.is_dir() :
+			self.rmdir()
+		else :
+			self.unlink()
+
+	def delete_content(self) :
+		if self.is_dir() :
+			self._delete_recursive()
+
+	def _delete_recursive(self) :
 		if not self.is_dir() :
 			return
 		for sub in self.iterdir() :
 			if sub.is_dir() :
-				sub.delete()
+				sub._delete_recursive()
 			else :
 				sub.unlink()
-		if not content_only :
-			self.rmdir() # if you just want to delete dir content, remove this line
 
 	def make_dirs(self, umask='shared') :
 		""" create all dirs, equivalent to mkdir(parents=True) but also set permissions """

@@ -5,7 +5,7 @@ from pathlib import Path
 class UniversalWriter() :
 	"""
 	behave differently depending on the output parameter given
-		output is None : open a io.String() ou io.Bytes()
+		output is None : open a io.String() or io.Bytes()
 		output is a Path : open the file in 'wt' or 'wb' mode
 		else : out must have a write() method
 	"""

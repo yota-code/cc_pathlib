@@ -98,9 +98,8 @@ class Path(type(pathlib.Path())) :
 		subprocess.run([str(i) for i in cmd], cwd=self.parent)
 
 	def delete(self) :
-		self.delete_content()
-
 		if self.is_dir() :
+			self._delete_recursive()
 			self.rmdir()
 		else :
 			self.unlink()
@@ -110,12 +109,13 @@ class Path(type(pathlib.Path())) :
 			self._delete_recursive()
 
 	def _delete_recursive(self) :
-		if not self.is_dir() :
-			return
-		for sub in self.iterdir() :
+		for sub in self :
 			if sub.is_dir() :
 				sub._delete_recursive()
+				#print(f"_delete_dir({self})")
+				sub.rmdir()
 			else :
+				#print(f"_delete_file({self})")
 				sub.unlink()
 
 	def make_dirs(self, umask='shared') :
@@ -125,6 +125,7 @@ class Path(type(pathlib.Path())) :
 
 			self.mkdir()
 			self.chmod(self._umask_dir_map[umask])
+		return self
 
 	def make_parents(self, umask='shared') :
 		""" create all parent dirs of a given file to be """
@@ -132,6 +133,7 @@ class Path(type(pathlib.Path())) :
 			if not p.is_dir() :
 				p.mkdir()
 				p.chmod(self._umask_dir_map[umask])
+		return self
 
 	def _load_archive(self, fmt=None, encoding=None) :
 		""" open the compressed file, return the content """
@@ -277,7 +279,7 @@ class Path(type(pathlib.Path())) :
 		else :
 			raise ValueError("Path() must be a directory")
 
-	def run(self, * cmd_lst, timeout=None, blocking=True, bg_task=False, quiet=False) :
+	def run(self, * cmd_lst, env=None, timeout=None, blocking=True, bg_task=False, quiet=False) :
 
 		cwd = (self).resolve()
 
@@ -304,9 +306,9 @@ class Path(type(pathlib.Path())) :
 			print(cmd_header + ' '.join(str(i) for i in cmd_line))
 
 		if bg_task :
-			subprocess.Popen(cmd_line, cwd=(str(cwd) if cwd is not None else cwd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			subprocess.Popen(cmd_line, cwd=(str(cwd) if cwd is not None else cwd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
 		else :
-			ret = subprocess.run(cmd_line, cwd=(str(cwd) if cwd is not None else cwd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
+			ret = subprocess.run(cmd_line, cwd=(str(cwd) if cwd is not None else cwd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, timeout=timeout)
 			if blocking and ret.returncode != 0 :
 				if not quiet :
 					print('\n' + ' '.join(ret.args) + '\n' + ret.stderr.decode(sys.stderr.encoding) + '\n' + '-' * 32)

@@ -2,6 +2,10 @@
 
 import collections
 
+"""
+this code was not extensively tested, use with care
+"""
+
 class DedupDir() :
 	def __init__(self, base_dir) :
 		self.base_dir = base_dir
@@ -47,7 +51,7 @@ class DedupDir() :
 				self.fuse(path_subset)
 		
 	def fuse(self, pth_set) :
-		# fuse is destructive, be careful to pass only strictly identical files
+		# fuse is destructive, be careful to pass to this stage only strictly identical files
 		pth_lst = sorted(pth_set)
 
 		pth_orig = pth_lst.pop()

@@ -37,6 +37,8 @@ class Path(type(pathlib.Path())) :
 	def config(self) :
 		if self.fsuffix in [".json", ".json.br"] :
 			return cc_pathlib.filter.cc_json._JSON_config_CONTEXT(self)
+		elif self.fsuffix in [".pickle",] :
+			return cc_pathlib.filter.cc_pickle._PICKLE_config_CONTEXT(self)
 		else :
 			raise NotImplementedError
 

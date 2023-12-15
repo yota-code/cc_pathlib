@@ -15,6 +15,8 @@ class JSONCustomEncoder(json.JSONEncoder):
 			return obj.isoformat()
 		elif isinstance(obj, pathlib.Path) :
 			return str(obj)
+		elif isinstance(obj, slice) :
+			return [obj.start, obj.stop]
 		else:
 			return json.JSONEncoder.default(self, obj)
 

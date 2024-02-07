@@ -257,12 +257,12 @@ class Path(type(pathlib.Path())) :
 		else :
 			return data
 
-	def hardlink_to(self, target) :
-		""" self is the source we link FROM, target is the name TO (ie. self is created) """
-		if target.is_file() :
-			os.link(target, self)
-		else :
-			raise ValueError("hardlink target must be a file")
+	# def hardlink_to(self, target) : implemented in the base class from 3.10
+	# 	""" self is the source we link FROM, target is the name TO (ie. self is created) """
+	# 	if target.is_file() :
+	# 		os.link(target, self)
+	# 	else :
+	# 		raise ValueError("hardlink target must be a file")
 
 	@property
 	def fname(self) :

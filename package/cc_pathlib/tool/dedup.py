@@ -50,7 +50,7 @@ class DedupDir() :
 			if len(path_subset) :
 				self.fuse(path_subset)
 		
-	def fuse(self, pth_set) :
+	def fuse(self, pth_set, dry_run=True) :
 		# fuse is destructive, be careful to pass to this stage only strictly identical files
 		pth_lst = sorted(pth_set)
 
@@ -60,8 +60,9 @@ class DedupDir() :
 		for pth_test in pth_lst :
 			inode_test = pth_test.stat().st_ino
 			if inode_test != inode_orig :
-				pth_test.unlink()
-				pth_test.hardlink_to(pth_orig)
+				if not dry_run :
+					pth_test.unlink()
+					pth_test.hardlink_to(pth_orig)
 				print(f"{pth_test} -> {pth_orig}")
 
 	def dedup(self, pattern='*', same_name=False) :

@@ -103,8 +103,10 @@ class Path(type(pathlib.Path())) :
 		if self.is_dir() :
 			self._delete_recursive()
 			self.rmdir()
-		else :
+		elif self.is_file() :
 			self.unlink()
+		else :
+			return
 
 	def delete_content(self) :
 		if self.is_dir() :
@@ -196,7 +198,7 @@ class Path(type(pathlib.Path())) :
 			data = self._load_filter(data, s_lst[-1])
 		return data
 
-	def save(self, data, encoding='utf-8', archive_opt=None, filter_opt=None, make_dirs='shared') :
+	def save(self, data, encoding='utf-8', make_dirs='shared', ** extra_opt) :
 		s_lst = self.suffixes
 
 		self.make_parents(make_dirs)
@@ -205,8 +207,8 @@ class Path(type(pathlib.Path())) :
 		if s_lst and s_lst[-1] in self._available_archive :
 			fmt = s_lst.pop()
 		if s_lst and s_lst[-1] in self._available_filter :
-			data = self._save_filter(data, s_lst.pop(), filter_opt)
-		self._save_archive(data, fmt, encoding)
+			data = self._save_filter(data, s_lst.pop(), extra_opt)
+		self._save_archive(data, fmt, encoding, extra_opt)
 
 	def _save_archive(self, data, fmt, encoding='utf-8', opt=None) :
 		# print("Path._save_archive({0})".format(fmt))
@@ -257,12 +259,12 @@ class Path(type(pathlib.Path())) :
 		else :
 			return data
 
-	def hardlink_to(self, target) :
-		""" self is the source we link FROM, target is the name TO (ie. self is created) """
-		if target.is_file() :
-			os.link(target, self)
-		else :
-			raise ValueError("hardlink target must be a file")
+	# def hardlink_to(self, target) : implemented in the base class from 3.10
+	# 	""" self is the source we link FROM, target is the name TO (ie. self is created) """
+	# 	if target.is_file() :
+	# 		os.link(target, self)
+	# 	else :
+	# 		raise ValueError("hardlink target must be a file")
 
 	@property
 	def fname(self) :
@@ -317,3 +319,8 @@ class Path(type(pathlib.Path())) :
 				ret.check_returncode()
 			return ret
 			
+	def checksum(self) :
+		import hashlib
+		import base64
+		hsh = hashlib.blake2b(str(self.resolve()).encode('utf8'), digest_size=24, salt=b"cc_pathlib")
+		return base64.urlsafe_b64encode(hsh.digest()).decode('ascii')

@@ -46,9 +46,7 @@ def load_map(pth) :
 			n = 0
 
 		k_lst = p_lst[:n] + Path(k).parts
-
 		r_map[Path(* k_lst)] = ast.literal_eval(v)
-
 		p_lst = k_lst
 
 	return r_map

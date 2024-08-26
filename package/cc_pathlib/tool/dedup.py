@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from cc_pathlib import Path
+
 import collections
 
 """
@@ -7,8 +9,35 @@ this code was not extensively tested, use with care
 """
 
 class DedupDir() :
+
+	dry_run = True
+
 	def __init__(self, base_dir) :
-		self.base_dir = base_dir
+		self.base_dir = Path(base_dir).resolve()
+
+	def scan(self, * suffix_lst, cache=True) :
+		suffix_set = set(suffix_lst)
+
+		if cache :
+			import urllib
+			cache_pth = Path("/tmp/cc_pathlib") / (urllib.parse.quote(str(self.base_dir), safe='') + '.pickle')
+			print("cache_pth =", cache_pth)
+			if cache_pth.is_file() :
+				print("LoAD")
+				self.r_map = cache_pth.load()
+				return
+
+		self.r_map = dict()
+		self.r_map[None] = suffix_set
+
+		print("SCAN", suffix_set)
+		for pth in self.base_dir.iter_recursive(* suffix_set) :
+			print(pth)
+			self.r_map[pth.relative_to(self.base_dir)] = pth.stat()
+
+		if cache :
+			print(self.r_map)
+			cache_pth.save(self.r_map)
 
 	def dedup_name(self, pth_set) :
 		name_map = collections.defaultdict(set)
@@ -50,7 +79,7 @@ class DedupDir() :
 			if len(path_subset) :
 				self.fuse(path_subset)
 		
-	def fuse(self, pth_set, dry_run=True) :
+	def fuse(self, pth_set) :
 		# fuse is destructive, be careful to pass to this stage only strictly identical files
 		pth_lst = sorted(pth_set)
 
@@ -60,17 +89,14 @@ class DedupDir() :
 		for pth_test in pth_lst :
 			inode_test = pth_test.stat().st_ino
 			if inode_test != inode_orig :
-				if not dry_run :
-					pth_test.unlink()
-					pth_test.hardlink_to(pth_orig)
+				if self.dry_run :
+					pass
+					# pth_test.unlink()
+					# pth_test.hardlink_to(pth_orig)
 				print(f"{pth_test} -> {pth_orig}")
 
-	def dedup(self, pattern='*', same_name=False) :
-		pth_set = set()
-		for pth in self.base_dir.rglob(self.pattern) :
-			pth_set.add(pth)
-
-		if same_name :
+	def dedup(self) :
+		if self.only_same_name :
 			self.dedup_name(pth_set)
 		else :
 			self.dedup_size(pth_set)

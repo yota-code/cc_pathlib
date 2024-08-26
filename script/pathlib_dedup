@@ -2,6 +2,7 @@
 
 import sys
 
-from cc_pathlib import Path
+from cc_pathlib.tool.dedup import DedupDir
 
-root_dir = Path(sys.argv[1])
+u = DedupDir(sys.argv[1])
+u.scan(".txt", cache=True)

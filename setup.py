@@ -18,7 +18,7 @@ setuptools.setup(
         '' : "package",
     },
     install_requires=[
-    	"brotli",
+    	"brotli", "blake3", "xxhash"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

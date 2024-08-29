@@ -16,6 +16,7 @@ class DedupDir() :
 
 	def __init__(self, base_dir) :
 		self.base_dir = Path(base_dir).resolve()
+		self.saved = 0
 
 	def scan(self, * suffix_lst, cache=True) :
 		suffix_set = set(suffix_lst)
@@ -43,9 +44,14 @@ class DedupDir() :
 			cache_pth.save(self.r_map)
 
 	def hash(self, pth) :
+		fsh = blake3.blake3(max_threads=blake3.AUTO)
+		fsh.update_mmap(self.base_dir / pth)
+		return fsh.digest()
+
+	def checksum(self, pth) :
 		return binascii.crc32((self.base_dir / pth).read_bytes())
 
-	def dedup_name(self, pth_set) :
+	def dedup_name(self, pth_set=None) :
 		print(f"= dedup_name(... {len(pth_set) if pth_set is not None else pth_set})")
 
 		if pth_set is None :
@@ -88,20 +94,23 @@ class DedupDir() :
 			self.dedup_hash(inode_set)
 
 	def dedup_hash(self, pth_set) :
-		print(f"=       dedup_hash(... {len(pth_set)})")
+		# print(f"=       dedup_hash(... {len(pth_set)})")
+		print(f"=       dedup_hash({len(pth_set)} :: {pth_set})")
 		hash_map = collections.defaultdict(set)
 		for pth in pth_set :
-			hash_map[self.hash(pth)].add(pth)
+			hash_map[self.checksum(pth)].add(pth)
 
 		for k in hash_map :
-			path_subset = hash_map[k]
-			if len(path_subset) :
-				self.dedup_file(path_subset)
+			file_set = hash_map[k]
+			if 1 < len(file_set) :
+				print(f"=         dedup_file({k} x{len(file_set)} {' '.join(str(i) for i in sorted(file_set))})")
+				self.dedup_file(file_set)
 
 	def dedup_file(self, pth_set) :
-		print(f"=         dedup_file(... {len(pth_set)})")
+
 		file_map = collections.defaultdict(set)
 		for pth in pth_set :
+			assert self.r_map[pth].st_size <= 2**24
 			file_map[(self.base_dir / pth).read_bytes()].add(pth)
 
 		for k in file_map :
@@ -124,6 +133,7 @@ class DedupDir() :
 					pass
 					# pth_test.unlink()
 					# pth_test.hardlink_to(pth_orig)
+				self.saved += self.r_map[pth_test].st_size
 				print(f"\t  <- {pth_test}")
 
 	def dedup(self) :

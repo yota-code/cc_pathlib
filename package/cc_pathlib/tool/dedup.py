@@ -12,6 +12,8 @@ this code was not extensively tested, use with care
 
 class DedupDir() :
 
+	_debug = True
+
 	dry_run = True
 
 	def __init__(self, base_dir) :
@@ -44,6 +46,8 @@ class DedupDir() :
 			cache_pth.save(self.r_map)
 
 	def hash(self, pth) :
+		import blake3
+
 		fsh = blake3.blake3(max_threads=blake3.AUTO)
 		fsh.update_mmap(self.base_dir / pth)
 		return fsh.digest()
@@ -91,11 +95,11 @@ class DedupDir() :
 
 		inode_set = set(inode_map[k][0] for k in inode_map)
 		if 1 < len(inode_set) :
-			self.dedup_hash(inode_set)
+			self.dedup_checksum(inode_set)
 
-	def dedup_hash(self, pth_set) :
-		# print(f"=       dedup_hash(... {len(pth_set)})")
-		print(f"=       dedup_hash({len(pth_set)} :: {pth_set})")
+	def dedup_checksum(self, pth_set) :
+		# print(f"=       dedup_checksum(... {len(pth_set)})")
+		print(f"=       dedup_checksum({len(pth_set)} :: {pth_set})")
 		hash_map = collections.defaultdict(set)
 		for pth in pth_set :
 			hash_map[self.checksum(pth)].add(pth)
@@ -110,7 +114,7 @@ class DedupDir() :
 
 		file_map = collections.defaultdict(set)
 		for pth in pth_set :
-			assert self.r_map[pth].st_size <= 2**24
+			assert self.r_map[pth].st_size <= 2**25 # 32 Mo
 			file_map[(self.base_dir / pth).read_bytes()].add(pth)
 
 		for k in file_map :

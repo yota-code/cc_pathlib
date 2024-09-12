@@ -322,7 +322,7 @@ class Path(type(pathlib.Path())) :
 		hsh = hashlib.blake2b(str(self.resolve()).encode('utf8'), digest_size=24, salt=b"cc_pathlib")
 		return base64.urlsafe_b64encode(hsh.digest()).decode('ascii')
 
-	def iter_recursive(self, * suffix_lst, skip_hidden_dir=True, follow_symlink_dir=False, yield_symlink_file=False) :
+	def find_file(self, * suffix_lst, skip_hidden_dir=True, follow_symlink_dir=False, yield_symlink_file=False) :
 		root_lst = [self.resolve(),]
 
 		assert root_lst[0].is_dir(), f"{root_lst[0]} is not an existing dir"

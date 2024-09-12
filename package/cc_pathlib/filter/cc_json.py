@@ -17,6 +17,8 @@ class JSONCustomEncoder(json.JSONEncoder):
 			return str(obj)
 		elif isinstance(obj, slice) :
 			return [obj.start, obj.stop]
+		elif hasattr(obj, "_to_json") :
+			return obj._to_json()
 		else:
 			return json.JSONEncoder.default(self, obj)
 

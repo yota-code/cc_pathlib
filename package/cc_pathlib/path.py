@@ -322,7 +322,11 @@ class Path(type(pathlib.Path())) :
 		hsh = hashlib.blake2b(str(self.resolve()).encode('utf8'), digest_size=24, salt=b"cc_pathlib")
 		return base64.urlsafe_b64encode(hsh.digest()).decode('ascii')
 
-	def find_file(self, * suffix_lst, skip_hidden_dir=True, follow_symlink_dir=False, yield_symlink_file=False) :
+		# file_hasher = blake3(max_threads=blake3.AUTO)
+		# file_hasher.update_mmap("/big/file.txt")
+		# file_hash = file_hasher.digest()
+		
+	def iter_on_files(self, * suffix_lst, skip_hidden_dir=True, follow_symlink_dir=False, yield_symlink_file=False) :
 		root_lst = [self.resolve(),]
 
 		assert root_lst[0].is_dir(), f"{root_lst[0]} is not an existing dir"
@@ -337,7 +341,6 @@ class Path(type(pathlib.Path())) :
 						for suffix in suffix_lst :
 							if sub.name.endswith(suffix) :
 								yield sub
-								break
 					else :
 						yield sub
 				elif sub.is_dir() :

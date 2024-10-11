@@ -20,7 +20,11 @@ class JSONCustomEncoder(json.JSONEncoder):
 		elif hasattr(obj, "_to_json") :
 			return obj._to_json()
 		else:
-			return json.JSONEncoder.default(self, obj)
+			try :
+				return json.JSONEncoder.default(self, obj)
+			except TypeError :
+				return "@" + repr(obj)
+
 
 class _JSON_config_CONTEXT(dict) :
 	def __init__(self, pth) :
@@ -38,7 +42,6 @@ class _JSON_config_CONTEXT(dict) :
 
 	def __exit__(self, exc_type, exc_value, traceback) :
 		self.pth.save(self, filter_opt={"verbose":True})
-
 
 def json_from_str(txt) :
 	return json.loads(txt)

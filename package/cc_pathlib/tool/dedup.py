@@ -33,7 +33,6 @@ class DedupDir() :
 				return
 
 		self.r_map = dict()
-		# self.r_map[None] = suffix_set
 
 		print("SCAN", suffix_set, end=" ")
 		for pth in self.base_dir.iter_recursive(* suffix_set) :

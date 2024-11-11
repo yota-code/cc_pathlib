@@ -20,8 +20,6 @@ import cc_pathlib.filter.cc_numpy
 import cc_pathlib.filter.cc_array
 import cc_pathlib.filter.tsv
 
-import cc_pathlib.tool.dedup
-
 class Path(type(pathlib.Path())) :
 
 	_available_archive = ['.gz', '.xz', '.br', '.lz', '.bz2']
@@ -284,7 +282,6 @@ class Path(type(pathlib.Path())) :
 			raise ValueError("Path() must be a directory")
 
 	def run(self, * cmd_lst, env=None, timeout=None, blocking=True, bg_task=False, quiet=False) :
-
 		cwd = (self).resolve()
 
 		cmd_line = list()
@@ -324,3 +321,31 @@ class Path(type(pathlib.Path())) :
 		import base64
 		hsh = hashlib.blake2b(str(self.resolve()).encode('utf8'), digest_size=24, salt=b"cc_pathlib")
 		return base64.urlsafe_b64encode(hsh.digest()).decode('ascii')
+
+		# file_hasher = blake3(max_threads=blake3.AUTO)
+		# file_hasher.update_mmap("/big/file.txt")
+		# file_hash = file_hasher.digest()
+		
+	def iter_on_files(self, * suffix_lst, skip_hidden_dir=True, follow_symlink_dir=False, yield_symlink_file=False) :
+		root_lst = [self.resolve(),]
+
+		assert root_lst[0].is_dir(), f"{root_lst[0]} is not an existing dir"
+
+		while root_lst :
+			root_dir = root_lst.pop(0)
+			for sub in root_dir :
+				if sub.is_file() :
+					if not yield_symlink_file and sub.is_symlink() :
+						continue
+					if suffix_lst :
+						for suffix in suffix_lst :
+							if sub.name.endswith(suffix) :
+								yield sub
+					else :
+						yield sub
+				elif sub.is_dir() :
+					if sub.name.startswith('.') and skip_hidden_dir :
+						continue
+					if not follow_symlink_dir and sub.is_symlink() :
+						continue
+					root_lst.append(sub)

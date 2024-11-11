@@ -19,7 +19,6 @@ class _PICKLE_config_CONTEXT(dict) :
 	def __exit__(self, exc_type, exc_value, traceback) :
 		self.pth.save(self)
 
-
 def pickle_to_str(obj, ** kwarg) :
 	return pickle.dumps(obj, protocol=pickle.HIGHEST_PROTOCOL)
 

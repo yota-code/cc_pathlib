@@ -6,7 +6,7 @@ from pathlib import Path
 
 setuptools.setup(
     name="cc-pathlib",
-    version="0.1.0",
+    version="0.1.1",
     author="Yoochan",
     author_email="yota.news@gmail.com",
     description="a supercharged implementation of pathlib.Path()",
@@ -18,7 +18,7 @@ setuptools.setup(
         '' : "package",
     },
     install_requires=[
-    	"brotli",
+    	"brotli", "blake3", "xxhash"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

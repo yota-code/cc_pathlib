@@ -15,8 +15,10 @@ class DedupDir() :
 
 	_debug = True
 
-	dry_run = False
+	dry_run = True
+
 	max_nlink = 16
+	max_fsize = 2**24 # 16 Mo
 
 	def __init__(self, base_dir) :
 		self.base_dir = Path(base_dir).resolve()
@@ -38,7 +40,11 @@ class DedupDir() :
 
 		print("SCAN", suffix_set, end=" ")
 		for pth in self.base_dir.iter_on_files(* suffix_set) :
-			self.r_map[pth.relative_to(self.base_dir)] = pth.stat()
+			q = pth.stat()
+			if q.st_nlink < self.max_nlink :
+				# if the file is already linked at least max_nlink times, just pass
+				self.r_map[pth.relative_to(self.base_dir)] = q
+		
 		print(len(self.r_map))
 
 		if cache :
@@ -78,10 +84,13 @@ class DedupDir() :
 
 	def dedup_size(self, pth_set=None) :
 		print(f"=   dedup_size(... {len(pth_set) if pth_set is not None else pth_set})")
+
 		if pth_set is None :
 			pth_set = set(self.r_map)
+		
 		size_map = collections.defaultdict(set)
 		for pth in pth_set :
+			# sort in size based buckets
 			size_map[self.r_map[pth].st_size].add(pth)
 
 		for k in size_map :
@@ -90,11 +99,12 @@ class DedupDir() :
 				self.dedup_inode(size_set)
 
 	def dedup_inode(self, pth_set) :
-		""" the input is a set of pth with the same size
-		we keep only one per inode
+		"""
+		the input is a set of pth with the same size we keep only one per inode
 		(because all files linked to the same inode are already hardlinked)
 		"""
 		print(f"=     dedup_inode(... {len(pth_set)})")
+
 		inode_map = collections.defaultdict(list)
 		for pth in pth_set :
 			inode_map[self.r_map[pth].st_ino].append(pth)
@@ -103,9 +113,14 @@ class DedupDir() :
 		if 1 < len(inode_set) :
 			self.dedup_checksum(inode_set)
 
-	def dedup_checksum(self, pth_set) :
-		# print(f"=       dedup_checksum(... {len(pth_set)})")
+	def dedup_checksum(self, pth_set:set[Path]) :
+		"""
+		files in pth_set have the same size but different inodes
+		we sort them in buckets based on a checksum
+		"""
+
 		print(f"=       dedup_checksum({len(pth_set)} :: {pth_set})")
+
 		hash_map = collections.defaultdict(set)
 		for pth in pth_set :
 			hash_map[self.hash(pth)].add(pth)
@@ -113,15 +128,22 @@ class DedupDir() :
 		for k in hash_map :
 			file_set = hash_map[k]
 			if 1 < len(file_set) :
-				print(f"=         dedup_file({k} x{len(file_set)} {' '.join(str(i) for i in sorted(file_set))})")
+				print(f"=         dedup_file :: {k} x{len(file_set)} :: {' '.join(str(i) for i in sorted(file_set))})")
 				self.dedup_file(file_set)
 
 	def dedup_file(self, pth_set) :
+		"""
+		files in pth_set have the same checksum, should have different inodes
+		"""
+
 		file_map = collections.defaultdict(set)
 
+		pth_lst = sorted(pth_set)
+
+		TODO: write a better algorithm which extract a list of files KNOWN with certainty to be identical
+
 		for pth in pth_set :
-			assert self.r_map[pth].st_size <= 2**26 # 64 Mo
-			# TODO: verifier ici qu'on ne dépasse pas nlink !!!
+			pour les petits fichiers, on peur jouer avec un dico... pour les gros, on fait comment ?
 			file_map[(self.base_dir / pth).read_bytes()].add(pth)
 
 		for k in file_map :
@@ -130,6 +152,9 @@ class DedupDir() :
 				self.fuse(file_set)
 		
 	def fuse(self, pth_set) :
+		"""
+		files in pth_set are confirmed idendical, ready to be fused
+		"""
 		# fuse is destructive, be careful to pass to this stage only strictly identical files
 
 		pth_lst = sorted(pth_set)

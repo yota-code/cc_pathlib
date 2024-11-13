@@ -6,5 +6,5 @@ from cc_pathlib.tool.dedup import DedupDir
 
 u = DedupDir(sys.argv[1])
 u.scan(".txt", ".saofd", ".svg", ".ps", ".pdf", cache=False)
-u.dedup_name()
+u.dedup_size()
 print(u.saved)

@@ -3,8 +3,9 @@
 from cc_pathlib import Path
 
 import collections
+import mmap
 
-import binascii
+import xxhash
 
 """
 this code was not extensively tested, use with care
@@ -14,7 +15,8 @@ class DedupDir() :
 
 	_debug = True
 
-	dry_run = True
+	dry_run = False
+	max_nlink = 16
 
 	def __init__(self, base_dir) :
 		self.base_dir = Path(base_dir).resolve()
@@ -35,7 +37,7 @@ class DedupDir() :
 		self.r_map = dict()
 
 		print("SCAN", suffix_set, end=" ")
-		for pth in self.base_dir.iter_recursive(* suffix_set) :
+		for pth in self.base_dir.iter_on_files(* suffix_set) :
 			self.r_map[pth.relative_to(self.base_dir)] = pth.stat()
 		print(len(self.r_map))
 
@@ -44,15 +46,20 @@ class DedupDir() :
 			print(self.r_map)
 			cache_pth.save(self.r_map)
 
+	# def hash(self, pth) :
+	# 	import blake3
+
+	# 	fsh = blake3.blake3(max_threads=blake3.AUTO)
+	# 	fsh.update_mmap(self.base_dir / pth)
+	# 	return fsh.digest()
+
 	def hash(self, pth) :
-		import blake3
-
-		fsh = blake3.blake3(max_threads=blake3.AUTO)
-		fsh.update_mmap(self.base_dir / pth)
-		return fsh.digest()
-
-	def checksum(self, pth) :
-		return binascii.crc32((self.base_dir / pth).read_bytes())
+		hsh = xxhash.xxh3_64()
+		with (self.base_dir / pth).open("rb") as fid :
+			with mmap.mmap(fid.fileno(), 0, prot=mmap.PROT_READ) as mem :
+				hsh.update(mem)
+		return hsh.digest()
+		# return binascii.crc32((self.base_dir / pth).read_bytes())
 
 	def dedup_name(self, pth_set=None) :
 		print(f"= dedup_name(... {len(pth_set) if pth_set is not None else pth_set})")
@@ -101,7 +108,7 @@ class DedupDir() :
 		print(f"=       dedup_checksum({len(pth_set)} :: {pth_set})")
 		hash_map = collections.defaultdict(set)
 		for pth in pth_set :
-			hash_map[self.checksum(pth)].add(pth)
+			hash_map[self.hash(pth)].add(pth)
 
 		for k in hash_map :
 			file_set = hash_map[k]
@@ -110,10 +117,11 @@ class DedupDir() :
 				self.dedup_file(file_set)
 
 	def dedup_file(self, pth_set) :
-
 		file_map = collections.defaultdict(set)
+
 		for pth in pth_set :
-			assert self.r_map[pth].st_size <= 2**25 # 32 Mo
+			assert self.r_map[pth].st_size <= 2**26 # 64 Mo
+			# TODO: verifier ici qu'on ne dépasse pas nlink !!!
 			file_map[(self.base_dir / pth).read_bytes()].add(pth)
 
 		for k in file_map :
@@ -123,21 +131,29 @@ class DedupDir() :
 		
 	def fuse(self, pth_set) :
 		# fuse is destructive, be careful to pass to this stage only strictly identical files
+
 		pth_lst = sorted(pth_set)
 
-		pth_orig = pth_lst.pop()
-		inode_orig = self.r_map[pth_orig].st_ino
+		src = pth_lst.pop()
+		src_inode = self.r_map[src].st_ino
+		print(f"\t{src}")
 
-		print(f"\t{pth_orig}")
-		for pth_test in pth_lst :
-			inode_test = self.r_map[pth_test].st_ino
-			if inode_test != inode_orig :
-				if self.dry_run :
-					pass
-					# pth_test.unlink()
-					# pth_test.hardlink_to(pth_orig)
-				self.saved += self.r_map[pth_test].st_size
-				print(f"\t  <- {pth_test}")
+		while pth_lst :
+			if self.max_nlink <= (self.base_dir / src).stat().st_nlink :
+				src = pth_lst.pop()
+				src_inode = self.r_map[src].st_ino
+				print(f"\t{src}")
+				continue
+
+			dst = pth_lst.pop()
+			dst_inode = self.r_map[dst].st_ino
+
+			if dst_inode != src_inode :
+				if not self.dry_run :
+					(self.base_dir / dst).unlink()
+					(self.base_dir / dst).hardlink_to(self.base_dir / src)
+				self.saved += self.r_map[dst].st_size
+				print(f"\t\t<- {dst}")
 
 	def dedup(self) :
 		if self.only_same_name :
@@ -145,4 +161,5 @@ class DedupDir() :
 		else :
 			self.dedup_size(pth_set)
 
-
+	def print_graph(self) :
+		pass

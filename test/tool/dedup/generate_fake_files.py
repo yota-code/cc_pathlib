@@ -3,7 +3,7 @@
 import random
 import sys
 
-random.seed(0)
+# random.seed(0)
 
 from cc_pathlib import Path
 

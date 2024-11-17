@@ -4,6 +4,7 @@ from cc_pathlib import Path
 
 import collections
 import mmap
+import random
 
 import xxhash
 
@@ -13,12 +14,19 @@ this code was not extensively tested, use with care
 
 class DedupDir() :
 
+	"""
+		(same name)
+		same size
+		different inode ?
+		same hash
+	"""
+
 	_debug = True
 
 	dry_run = True
 
-	max_nlink = 16
-	max_fsize = 2**24 # 16 Mo
+	max_nlink = 8
+	max_fsize = 2**26 # 64 Mo
 
 	def __init__(self, base_dir) :
 		self.base_dir = Path(base_dir).resolve()
@@ -36,16 +44,16 @@ class DedupDir() :
 				self.r_map = cache_pth.load()
 				return
 
-		self.r_map = dict()
+		self.s_map = dict()
+		self.i_map = collections.defaultdict(list)
 
-		print("SCAN", suffix_set, end=" ")
 		for pth in self.base_dir.iter_on_files(* suffix_set) :
 			q = pth.stat()
 			if q.st_nlink < self.max_nlink :
-				# if the file is already linked at least max_nlink times, just pass
-				self.r_map[pth.relative_to(self.base_dir)] = q
-		
-		print(len(self.r_map))
+				# if the file is already linked at least max_nlink times, skip it
+				p = pth.relative_to(self.base_dir)
+				self.s_map[q.st_ino] = q.st_size
+				self.i_map[q.st_ino].append(p)
 
 		if cache :
 			print("SAVE")
@@ -67,119 +75,128 @@ class DedupDir() :
 		return hsh.digest()
 		# return binascii.crc32((self.base_dir / pth).read_bytes())
 
-	def dedup_name(self, pth_set=None) :
-		print(f"= dedup_name(... {len(pth_set) if pth_set is not None else pth_set})")
+	# def dedup_name(self, pth_set=None) :
+	# 	raise NotImplementedError
+	# 	"""
+	# 	the input is the full list of files
+	# 	we sort them by name and call dedup_size() with each bucket 
+	# 	"""
+	# 	print(f"= dedup_name(... {len(pth_set) if pth_set is not None else pth_set})")
 
-		if pth_set is None :
-			pth_set = set(self.r_map)
+	# 	if pth_set is None :
+	# 		pth_set = set(self.r_map)
 
-		name_map = collections.defaultdict(set)
-		for pth in pth_set :
-			name_map[pth.name].add(pth)
+	# 	name_map = collections.defaultdict(set)
+	# 	for pth in pth_set :
+	# 		name_map[pth.name].add(pth)
 
-		for k in name_map :
-			path_subset = name_map[k]
-			if 1 < len(path_subset) :
-				self.dedup_size(path_subset)
+	# 	for k in name_map :
+	# 		name_set = name_map[k]
+	# 		if 1 < len(name_set) :
+	# 			self.dedup_size(name_set)
 
-	def dedup_size(self, pth_set=None) :
-		print(f"=   dedup_size(... {len(pth_set) if pth_set is not None else pth_set})")
-
-		if pth_set is None :
-			pth_set = set(self.r_map)
+	def dedup_size(self) :
+		"""
+		we sort inodes in buckets of files of the same size
+		"""
+		# print(f"=   dedup_size(... {len(pth_set) if pth_set is not None else pth_set})")
 		
 		size_map = collections.defaultdict(set)
-		for pth in pth_set :
-			# sort in size based buckets
-			size_map[self.r_map[pth].st_size].add(pth)
+		for k in self.i_map :
+			# size -> inode_set
+			size_map[self.s_map[k]].add(k)
 
 		for k in size_map :
-			size_set = size_map[k]
-			if 1 < len(size_set) :
-				self.dedup_inode(size_set)
+			bucket_set = size_map[k]
+			if 1 < len(bucket_set) :
+				self.dedup_hash(bucket_set)
 
-	def dedup_inode(self, pth_set) :
+	# def dedup_inode(self, pth_set, size) :
+	# 	"""
+	# 	the input is a set of pth with the same size
+	# 	we keep only one per inode
+	# 	(because all files linked to the same inode are already hardlinked)
+	# 	"""
+	# 	print(f"=     dedup_inode(... {len(pth_set)})")
+
+	# 	inode_map = collections.defaultdict(list)
+	# 	for pth in pth_set :
+	# 		inode_map[self.r_map[pth].st_ino].append(pth)
+
+	# 	self.dedup_hash(inode_map, size)
+
+	def dedup_hash(self, inode_set) :
 		"""
-		the input is a set of pth with the same size we keep only one per inode
-		(because all files linked to the same inode are already hardlinked)
-		"""
-		print(f"=     dedup_inode(... {len(pth_set)})")
-
-		inode_map = collections.defaultdict(list)
-		for pth in pth_set :
-			inode_map[self.r_map[pth].st_ino].append(pth)
-
-		inode_set = set(inode_map[k][0] for k in inode_map)
-		if 1 < len(inode_set) :
-			self.dedup_checksum(inode_set)
-
-	def dedup_checksum(self, pth_set:set[Path]) :
-		"""
-		files in pth_set have the same size but different inodes
+		inodes in inode_set have the same size
 		we sort them in buckets based on a checksum
 		"""
 
-		print(f"=       dedup_checksum({len(pth_set)} :: {pth_set})")
+		# print(f"=       dedup_hash({len(pth_set)} :: {pth_set})")
 
 		hash_map = collections.defaultdict(set)
-		for pth in pth_set :
-			hash_map[self.hash(pth)].add(pth)
+		for k in inode_set :
+			# hash -> inode_set
+			hash_map[self.hash(self.i_map[k][0])].add(k)
 
 		for k in hash_map :
-			file_set = hash_map[k]
-			if 1 < len(file_set) :
-				print(f"=         dedup_file :: {k} x{len(file_set)} :: {' '.join(str(i) for i in sorted(file_set))})")
-				self.dedup_file(file_set)
+			bucket_set = hash_map[k]
+			if 1 < len(bucket_set) :
+				# print(f"=         dedup_file :: {k} x{len(file_set)} :: {' '.join(str(i) for i in sorted(file_set))})")
+				self.dedup_file(bucket_set)
 
-	def dedup_file(self, pth_set) :
+	def dedup_file(self, inode_set) :
 		"""
-		files in pth_set have the same checksum, should have different inodes
+		inodes in inode_set have the same size and same checksum
+		we call fuse as soon as two of them are equal
 		"""
 
-		file_map = collections.defaultdict(set)
+		if self.s_map[next(iter(inode_set))] < self.max_fsize :
+			file_map = collections.defaultdict(set)
+			for k in inode_set :
+				file_map[(self.base_dir / self.i_map[k][0]).read_bytes()].add(k)
 
-		pth_lst = sorted(pth_set)
-
-		TODO: write a better algorithm which extract a list of files KNOWN with certainty to be identical
-
-		for pth in pth_set :
-			pour les petits fichiers, on peur jouer avec un dico... pour les gros, on fait comment ?
-			file_map[(self.base_dir / pth).read_bytes()].add(pth)
-
-		for k in file_map :
-			file_set = file_map[k]
-			if 1 < len(file_set) :
-				self.fuse(file_set)
+			for k in file_map :
+				bucket_set = file_map[k]
+				if 1 < len(bucket_set) :
+					self.fuse(bucket_set)
 		
-	def fuse(self, pth_set) :
+	def fuse(self, inode_set) :
 		"""
-		files in pth_set are confirmed idendical, ready to be fused
+		inodes in inode_set have are confirmed to point idendical files !
 		"""
 		# fuse is destructive, be careful to pass to this stage only strictly identical files
 
-		pth_lst = sorted(pth_set)
+		# on commence par classer les inodes par nombre de fichiers qui y sont liés
+		inode_lst = sorted((len(self.i_map[k]), k) for k in inode_set)
 
-		src = pth_lst.pop()
-		src_inode = self.r_map[src].st_ino
-		print(f"\t{src}")
+		def pick_src() :
+			src_ino, src_pth = None, None
+			while True :
+				if src_pth is None or self.max_nlink <= (self.base_dir / src_pth).stat().st_nlink :
+					if inode_lst :
+						src_len, src_ino = inode_lst.pop(-1)
+						src_pth = self.i_map[src_ino][0]
+						yield src_pth
+					else :
+						return
+				else :
+					yield src_pth
 
-		while pth_lst :
-			if self.max_nlink <= (self.base_dir / src).stat().st_nlink :
-				src = pth_lst.pop()
-				src_inode = self.r_map[src].st_ino
-				print(f"\t{src}")
-				continue
+		src_picker = pick_src()
 
-			dst = pth_lst.pop()
-			dst_inode = self.r_map[dst].st_ino
+		while inode_lst :
+			dst_len, dst_ino = inode_lst.pop()
+			try :
+				for dst_pth in self.i_map[dst_ino] :
+					src_pth = next(src_picker)
+					(self.base_dir / dst_pth).unlink()
+					(self.base_dir / dst_pth).hardlink_to(self.base_dir / src_pth)
 
-			if dst_inode != src_inode :
-				if not self.dry_run :
-					(self.base_dir / dst).unlink()
-					(self.base_dir / dst).hardlink_to(self.base_dir / src)
-				self.saved += self.r_map[dst].st_size
-				print(f"\t\t<- {dst}")
-
+					# print(f"{src_pth} <- {dst_pth}")
+					self.saved += self.s_map[dst_ino]
+			except StopIteration :
+				break
+				
 	def dedup(self) :
 		if self.only_same_name :
 			self.dedup_name(pth_set)

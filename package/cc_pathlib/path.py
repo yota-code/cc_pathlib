@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
+import collections
 import datetime
-import lzma
 import gzip
+import lzma
 import os
 import pathlib
 import subprocess
@@ -327,12 +328,19 @@ class Path(type(pathlib.Path())) :
 		# file_hash = file_hasher.digest()
 		
 	def iter_on_files(self, * suffix_lst, skip_hidden_dir=True, follow_symlink_dir=False, yield_symlink_file=False) :
-		root_lst = [self.resolve(),]
+		"""
+			advanced reccursive iterator on files contained in a directory
+			implemented without recursion
+		"""
+		root_pth = self.resolve()
 
-		assert root_lst[0].is_dir(), f"{root_lst[0]} is not an existing dir"
+		assert root_pth.is_dir(), f"{root_pth} is not an existing dir"
 
-		while root_lst :
-			root_dir = root_lst.pop(0)
+		root_que = collections.deque()
+		root_que.append(root_pth)
+
+		while root_que :
+			root_dir = root_que.popleft()
 			for sub in root_dir :
 				if sub.is_file() :
 					if not yield_symlink_file and sub.is_symlink() :
@@ -348,4 +356,4 @@ class Path(type(pathlib.Path())) :
 						continue
 					if not follow_symlink_dir and sub.is_symlink() :
 						continue
-					root_lst.append(sub)
+					root_que.append(sub)

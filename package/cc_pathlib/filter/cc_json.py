@@ -25,7 +25,6 @@ class JSONCustomEncoder(json.JSONEncoder):
 			except TypeError :
 				return "@" + repr(obj)
 
-
 class _JSON_config_CONTEXT(dict) :
 	def __init__(self, pth) :
 		self.pth = pth
@@ -41,7 +40,7 @@ class _JSON_config_CONTEXT(dict) :
 		self.pth.save(self, filter_opt={"verbose":True})
 
 	def __exit__(self, exc_type, exc_value, traceback) :
-		self.pth.save(self, filter_opt={"verbose":True})
+		self.sync()
 
 def json_from_str(txt) :
 	return json.loads(txt)

@@ -15,10 +15,10 @@ this code was not extensively tested, use with care
 class DedupDir() :
 
 	"""
-		(same name)
-		same size
-		different inode ?
-		same hash
+	TODO:
+		d'abord scanner par (st_dev, st_ino) ! ça sert à rien d'avoir deux fois des fichiers de même inode !!!!
+		ensuite trier par taille (la selection par nom est con comme tout, ou alors à la selection initiale)
+		puis par hash
 	"""
 
 	_debug = True

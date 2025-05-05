@@ -9,7 +9,7 @@ import xxhash
 from cc_pathlib import Path
 
 
-class FileStatus(enum.Enum) :
+class FileStatus(enum.IntEnum) :
 	UNCHANGED = 0
 	MODIFIED = 1
 	DELETED = -1
@@ -44,12 +44,10 @@ class Attentive() :
 			if isinstance(cache_arg, str) or isinstance(cache_arg, Path) :
 				cache_dir = Path(cache_arg).resolve().make_dirs()
 			else :
-				txt = str(self.base_dir).encode('utf8')
-				hsh = hashlib.blake2b(txt, digest_size=24, salt=b"cc")
-				key = base64.urlsafe_b64encode(hsh.digest()).decode('ascii')
-				cache_dir = (Path('/tmp') / f"pathlib_{key}").make_dirs('private')
+				cache_dir = (Path('/tmp') / f"pathlib_{hash(self.base_dir)}").make_dirs('private')
 			self.cache_pth = cache_dir / 'attentive.pickle'
 
+			# self.m est un un dictionnaire local_pth -> hash pour garder une mémoire des fichiers déjà scannés
 			if self.cache_pth.is_file() :
 				self.m = self.cache_pth.load()
 			else :
@@ -59,7 +57,7 @@ class Attentive() :
 			self.cache_pth = None
 
 		self.z = dict() # list of tasks in progress
-		self.d = dict() # set of deleted files
+		self.d = set() # set of deleted files
 
 		# for local_pth in self.m :
 		# 	pth = self.base_dir / local_pth
@@ -84,33 +82,42 @@ class Attentive() :
 		3. if different return the content of the file else return None
 		4. if a file is returned, local_pth is stored in the "in progress" map
 		"""
+
+		print("TODO:", local_pth)
 		pth = self.base_dir / local_pth
 
 		if not pth.is_file() :
-			# le fichier a été supprimé
-			self.d[local_pth] = None
+			# le fichier n'existe plus, on le marque comme tel, on ne retourne rien
+			self.d.add(local_pth)
 			return FileStatus.DELETED, b''
 
+		# Sinon on ouvre le fichier et on fait un hash rapide
 		siz = pth.stat().st_size & 0xFFFF
 		bin = pth.read_bytes()
 		hsh = xxhash.xxh3_64(bin, seed=siz).intdigest()
 		key = (siz << 64) + hsh
 
 		if local_pth in self.m and self.m[local_pth] == key :
+			print("UNCHANGED", local_pth)
 			return FileStatus.UNCHANGED, b''
 
 		self.z[local_pth] = key
+		print("MODIFIED", local_pth, self.z)
+
 		return FileStatus.MODIFIED, bin
 	
-	def done(self, local_pth) :
-		if local_pth in self.d :
-			del self.d[local_pth]
-			self.m.pop(local_pth, None)
-		elif local_pth in self.z :
-			key = self.z.pop(local_pth, None)
-			self.m[local_pth] = key
-		else :
-			assert local_pth in self.m
+	def done(self, * local_lst) :
+		for local_pth in local_lst :
+			print("DONE", local_pth, self.z.keys())
+			if local_pth in self.d :
+				self.d.remove(local_pth)
+				self.m.pop(local_pth, None)
+			elif local_pth in self.z :
+				key = self.z.pop(local_pth)
+				self.m[local_pth] = key
+			else :
+				print(f"{local_pth} not found in {self.m}")
+				assert local_pth in self.m
 
 # class Attentive() :
 

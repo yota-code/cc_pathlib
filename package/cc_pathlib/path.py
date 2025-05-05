@@ -121,6 +121,14 @@ class Path(type(pathlib.Path())) :
 				#print(f"_delete_file({self})")
 				sub.unlink()
 
+	def delete_empty_dirs(self) :
+		r_lst = [root for root, dirs, files in self.walk()]
+		for pth in reversed(r_lst) :
+			try :
+				pth.rmdir()
+			except OSError :
+				pass
+			
 	def make_dirs(self, umask='shared') :
 		""" create all dirs, equivalent to mkdir(parents=True) but also set permissions """
 		if not self.is_dir() :
@@ -327,12 +335,16 @@ class Path(type(pathlib.Path())) :
 		# file_hasher.update_mmap("/big/file.txt")
 		# file_hash = file_hasher.digest()
 		
-	def iter_on_files(self, * suffix_lst, skip_hidden_dir=True, follow_symlink_dir=False, yield_symlink_file=False) :
+	def iter_on_suffix(self, suffix_lst, skip_hidden_dir=True, follow_symlink_dir=False, yield_symlink_file=False) :
 		"""
 			advanced reccursive iterator on files contained in a directory
 			implemented without recursion
 		"""
+
 		root_pth = self.resolve()
+		suffix_set = set(suffix_lst)
+
+		print(root_pth, suffix_set)
 
 		assert root_pth.is_dir(), f"{root_pth} is not an existing dir"
 
@@ -345,8 +357,8 @@ class Path(type(pathlib.Path())) :
 				if sub.is_file() :
 					if not yield_symlink_file and sub.is_symlink() :
 						continue
-					if suffix_lst :
-						for suffix in suffix_lst :
+					if suffix_set :
+						for suffix in suffix_set :
 							if sub.name.endswith(suffix) :
 								yield sub
 					else :

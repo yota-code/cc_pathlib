@@ -5,7 +5,7 @@ import datetime
 import pathlib
 
 class JSONCustomEncoder(json.JSONEncoder):
-	def default(self, obj):
+	def default(self, obj) :
 		if isinstance(obj, set) :
 			try :
 				return sorted(obj)

@@ -325,7 +325,7 @@ class Path(type(pathlib.Path())) :
 				ret.check_returncode()
 			return ret
 			
-	def checksum(self) :
+	def __hash__(self) :
 		import hashlib
 		import base64
 		hsh = hashlib.blake2b(str(self.resolve()).encode('utf8'), digest_size=24, salt=b"cc_pathlib")
@@ -335,19 +335,19 @@ class Path(type(pathlib.Path())) :
 		# file_hasher.update_mmap("/big/file.txt")
 		# file_hash = file_hasher.digest()
 		
-	def iter_on_suffix(self, suffix_lst, skip_hidden_dir=True, follow_symlink_dir=False, yield_symlink_file=False) :
+	def iter_on_suffix(self, * suffix_lst, skip_hidden_dir=True, follow_symlink_dir=False, yield_symlink_file=False, case_insensitive=True) :
 		"""
 			advanced reccursive iterator on files contained in a directory
 			implemented without recursion
 		"""
 
+		if case_insensitive :
+			suffix_set = {suffix.lower() for suffix in suffix_lst}
+		else:
+			suffix_set = set(suffix_lst)
+
 		root_pth = self.resolve()
-		suffix_set = set(suffix_lst)
-
-		print(root_pth, suffix_set)
-
 		assert root_pth.is_dir(), f"{root_pth} is not an existing dir"
-
 		root_que = collections.deque()
 		root_que.append(root_pth)
 
@@ -359,7 +359,7 @@ class Path(type(pathlib.Path())) :
 						continue
 					if suffix_set :
 						for suffix in suffix_set :
-							if sub.name.endswith(suffix) :
+							if sub.name.endswith(suffix) or ( case_insensitive and sub.name.lower().endswith(suffix) ) :
 								yield sub
 					else :
 						yield sub

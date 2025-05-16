@@ -290,17 +290,8 @@ class Path(type(pathlib.Path())) :
 		else :
 			raise ValueError("Path() must be a directory")
 
-	def run(self, * cmd_lst, env=None, timeout=None, blocking=True, bg_task=False, quiet=False) :
-		cwd = (self).resolve()
-
-		cmd_line = list()
-		for cmd in cmd_lst :
-			if isinstance(cmd, dict) :
-				for k, v in cmd.items() :
-					cmd_line.append('--' + str(k))
-					cmd_line.append(str(v))
-			else :
-				cmd_line.append(str(cmd))
+	def _run_setup(self, cmd_args, other_args, ** default_args) :
+		cwd = self.resolve()
 
 		cmd_header = '\x1b[44m{0} {1}{2} $\x1b[0m '.format(
 			socket.gethostname(),
@@ -308,22 +299,35 @@ class Path(type(pathlib.Path())) :
 			datetime.datetime.now().strftime('%H:%M:%S')
 		)
 
-		if not quiet :
-			try :
-				cwd_rel = cwd.relative_to(self)
-			except :
-				cwd_rel = cwd
-			print(cmd_header + ' '.join(str(i) for i in cmd_line))
+		cmd_line = list()
+		for cmd in cmd_args :
+			if isinstance(cmd, dict) :
+				for k, v in cmd.items() :
+					cmd_line.append('--' + str(k))
+					cmd_line.append(str(v))
+			else :
+				cmd_line.append(str(cmd))
 
-		if bg_task :
-			subprocess.Popen(cmd_line, cwd=(str(cwd) if cwd is not None else cwd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-		else :
-			ret = subprocess.run(cmd_line, cwd=(str(cwd) if cwd is not None else cwd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, timeout=timeout)
-			if blocking and ret.returncode != 0 :
-				if not quiet :
-					print('\n' + ' '.join(ret.args) + '\n' + ret.stderr.decode(sys.stderr.encoding) + '\n' + '-' * 32)
-				ret.check_returncode()
-			return ret
+		print(cmd_header + ' '.join(cmd_line))
+
+		return cmd_header, cmd_line, {'cwd': cwd,} | default_args | other_args
+
+	def run(self, * cmd_args, ** other_args) :
+		cmd_header, cmd_line, call_args = self._run_setup(cmd_args, other_args, capture_output=True, text=True)
+		return subprocess.run(cmd_line, ** call_args)
+
+	def run_verbose(self, * cmd_args, ** other_args) :
+		cmd_header, cmd_line, call_args = self._run_setup(cmd_args, other_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+		with subprocess.Popen(cmd_line, ** call_args) as proc :
+			if proc.stdout:
+				for line in proc.stdout:
+					sys.stdout.write(line)
+					sys.stdout.flush()
+		return proc.returncode
+
+	def run_background(self, * cmd_args, ** other_args) :
+		cmd_header, cmd_line, call_args = self._run_setup(cmd_args, other_args)
+		subprocess.Popen(cmd_line, ** call_args)
 			
 	def __hash__(self) :
 		import hashlib

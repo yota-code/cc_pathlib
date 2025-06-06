@@ -373,3 +373,29 @@ class Path(type(pathlib.Path())) :
 					if not follow_symlink_dir and sub.is_symlink() :
 						continue
 					root_que.append(sub)
+
+	def is_same(self, other) :
+		""" return true if both files have the same st_ino and st_dev
+		which may be also true for hardlinked files
+		"""
+		s_stat, o_stat = self.stat(), other.stat()
+		return (s_stat.st_ino, s_stat.st_dev) == (o_stat.st_ino, o_stat.st_dev) :
+
+	def is_identical(self, other) :
+		# Check if the file sizes are the same
+		s_stat, o_stat = self.stat(), other.stat()
+
+		if (s_stat.st_ino, s_stat.st_dev) == (o_stat.st_ino, o_stat.st_dev) :
+			raise ValueError("they are not identical, they are the same file")
+
+		if s_stat.st_size != o_stat.st_size :
+			return False
+
+		# Open the files in binary mode
+		with self.open('rb') as sfid, other.open('rb') as ofid :
+			with (
+				mmap.mmap(sfid.fileno(), 0, access=mmap.ACCESS_READ) as smap, 
+				mmap.mmap(ofid.fileno(), 0, access=mmap.ACCESS_READ) as omap
+			) :
+
+			return smap == omap

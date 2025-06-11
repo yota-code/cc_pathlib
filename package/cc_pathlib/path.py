@@ -397,5 +397,4 @@ class Path(type(pathlib.Path())) :
 				mmap.mmap(sfid.fileno(), 0, access=mmap.ACCESS_READ) as smap, 
 				mmap.mmap(ofid.fileno(), 0, access=mmap.ACCESS_READ) as omap
 			) :
-
-			return smap == omap
+				return smap == omap

@@ -376,7 +376,7 @@ class Path(type(pathlib.Path())) :
 
 	def is_same(self, other) :
 		""" return true if both files have the same st_ino and st_dev
-		which may be also true for hardlinked files
+		which is true for hardlinked files
 		"""
 		s_stat, o_stat = self.stat(), other.stat()
 		return (s_stat.st_ino, s_stat.st_dev) == (o_stat.st_ino, o_stat.st_dev)
@@ -397,5 +397,4 @@ class Path(type(pathlib.Path())) :
 				mmap.mmap(sfid.fileno(), 0, access=mmap.ACCESS_READ) as smap, 
 				mmap.mmap(ofid.fileno(), 0, access=mmap.ACCESS_READ) as omap
 			) :
-
-			return smap == omap
+				return smap == omap

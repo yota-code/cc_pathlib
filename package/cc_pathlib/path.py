@@ -398,3 +398,29 @@ class Path(type(pathlib.Path())) :
 				mmap.mmap(ofid.fileno(), 0, access=mmap.ACCESS_READ) as omap
 			) :
 				return smap == omap
+
+	def mako(self, dst_dir=None, src_dir=None, param=None) :
+		assert self.suffix == '.mako'
+
+		if dst_dir is None :
+			dst_dir = self.parent
+
+		if src_dir is None :
+			src_dir = self.parent
+
+		if mako.is_file() :
+			src_pth = self.relative_to(src_dir)
+			dst_pth = dst_dir / src_pth.with_suffix('')
+
+			mtf = mako.template.Template(filename=str(self))
+			dst_pth.make_parents()
+			try :
+				dst_pth.write_text(mtf.render(** param))
+			except Exception as e :
+				dst_pth.write_text(f'Failed rendering ! {e}\n------\n{traceback.format_exc()}')
+
+		elif mako.is_dir() :
+			raise NotImplementedError
+
+		else :
+			raise FileNotFoundError

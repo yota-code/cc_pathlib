@@ -15,9 +15,7 @@ class Insensitive() :
 	L'idée est de parcourir un dossier et de faire un tableau associant
 	le nom d'un chemin mis en minuscule et son nom original (quand ils 
 	sont différents), afin de contourner le fait que les systèmes de
-	fichier sous Windows sont insensibles à la casse
-
-
+	fichier sous Windows sont insensibles à la casse, alors que linux non.
 	"""
 
 	def __init__(self, base_dir:Path, cache_arg=False) :
@@ -29,13 +27,11 @@ class Insensitive() :
 
 		if cache_arg :
 			if isinstance(cache_arg, str) or isinstance(cache_arg, Path) :
+				# if a cache_arg looks like a path, use it
 				cache_dir = Path(cache_arg).resolve().make_dirs()
 			else :
-				# hash based cache name is given
-				txt = str(self.base_dir).encode('utf8')
-				hsh = hashlib.blake2b(txt, digest_size=24, salt=b"cc_pathlib")
-				key = base64.urlsafe_b64encode(hsh.digest()).decode('ascii')
-				cache_dir = (Path('/tmp') / f"pathlib_{key}").make_dirs('private')
+				# else, create a path based on a hash of base_dir
+				cache_dir = (Path('/tmp') / f"pathlib_{hash(self.base_dir)}").make_dirs('private')
 			
 			self.cache_pth = cache_dir / f"insensitive.pickle"
 
@@ -44,14 +40,17 @@ class Insensitive() :
 
 			if self.cache_pth.is_file() :
 				self.f_map = self.cache_pth.load()
+
 		else :
-			# cache disabled completely
+			# if cache_arg is False, the cache is disabled completely
+			if self._debug :
+				print(f"{__class__.__name__}.__init__() :: cache disabled")
+
 			self.cache_pth = None
 
 	def scan(self, * suffix_lst) :
 		print(">>> Insensitive.scan()")
 
-		self.f_map = dict()
 		for pth in self.base_dir.iter_on_suffix(* suffix_lst) :
 			p = pth.relative_to(self.base_dir)
 			k = str(p)
@@ -62,14 +61,16 @@ class Insensitive() :
 		if self.cache_pth is not None :
 			self.cache_pth.save(self.f_map)
 			if self._debug :
-				self.cache_pth.with_suffix('.json').save(self.f_map)
+				self.cache_pth.with_suffix('.json').save(self.f_map, verbose=True)
 
 		return self
 
 	def __getitem__(self, key:str) :
-		return self.f_map.get(key.lower(), key)
+		# return the real path from one which may have the wrong casing
+		return self.f_map.get(str(key).lower(), key)
 		
 	def __truediv__(self, key:str) :
+		# resolve the real path to the base_dir
 		return self.base_dir / self[key]
 
 if __name__ == '__main__' :

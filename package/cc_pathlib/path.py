@@ -332,12 +332,12 @@ class Path(type(pathlib.Path())) :
 	def __hash__(self) :
 		import hashlib
 		import base64
-		hsh = hashlib.blake2b(str(self.resolve()).encode('utf8'), digest_size=24, salt=b"cc_pathlib")
-		return base64.urlsafe_b64encode(hsh.digest()).decode('ascii')
 
-		# file_hasher = blake3(max_threads=blake3.AUTO)
-		# file_hasher.update_mmap("/big/file.txt")
-		# file_hash = file_hasher.digest()
+		txt = str(self.resolve()).encode('utf8')
+		hsh = hashlib.blake2b(txt, digest_size=24, salt=b"cc_pathlib")
+		key = base64.urlsafe_b64encode(hsh.digest()).decode('ascii')
+
+		return key
 		
 	def iter_on_suffix(self, * suffix_lst, skip_hidden_dir=True, follow_symlink_dir=False, yield_symlink_file=False, case_insensitive=True) :
 		"""

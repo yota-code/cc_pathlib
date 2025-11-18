@@ -329,7 +329,7 @@ class Path(type(pathlib.Path())) :
 		cmd_header, cmd_line, call_args = self._run_setup(cmd_args, other_args)
 		subprocess.Popen(cmd_line, ** call_args)
 			
-	def __hash__(self) :
+	def hash(self) :
 		import hashlib
 		import base64
 

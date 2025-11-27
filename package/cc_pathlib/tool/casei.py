@@ -19,6 +19,7 @@ class Insensitive() :
 	"""
 
 	def __init__(self, base_dir:Path, cache_arg=False) :
+		# TODO: la liste des suffixes devrait être en argument de __init__, ou alors il faut un système de cache plus malin...
 		self.base_dir = Path(base_dir).resolve()
 
 		assert self.base_dir.is_dir(), f"ASSERT:the base_dir must be an existing director:{self.base_dir}"
@@ -39,6 +40,8 @@ class Insensitive() :
 				print(f"{__class__.__name__}.__init__() :: cache_pth = {self.cache_pth}")
 
 			if self.cache_pth.is_file() :
+				if self._debug :
+					print(f"{__class__.__name__}.__init__() :: CACHE FOUND ... LOADING")
 				self.f_map = self.cache_pth.load()
 
 		else :
@@ -66,11 +69,11 @@ class Insensitive() :
 		return self
 
 	def __getitem__(self, key:str) :
-		# return the real path from one which may have the wrong casing
+		# return the key with the correct case
 		return self.f_map.get(str(key).lower(), key)
 		
 	def __truediv__(self, key:str) :
-		# resolve the real path to the base_dir
+		# resolve the full path, including the base_dir
 		return self.base_dir / self[key]
 
 if __name__ == '__main__' :

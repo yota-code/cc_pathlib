@@ -14,8 +14,6 @@ class FileStatus(enum.IntEnum) :
 	MODIFIED = 1
 	DELETED = -1
 
-
-
 """
 Il faut faire une liste de tous les fichiers surveillés
 dans cette liste il faut marquer les fichiers qui méritent d'être traité à nouveau

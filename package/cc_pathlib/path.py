@@ -79,14 +79,16 @@ class Path(type(pathlib.Path())) :
 
 		if self.is_dir() :
 			tar_pth = dst_dir / (dst_name + '.tar')
+			print(f"archiving \x1b[33m{self.name}\x1b[0m into \x1b[33m{tar_pth}.lz\x1b[0m")
 			cmd = ['tar', '--create', '--file', tar_pth, self.name]
 			subprocess.run([str(i) for i in cmd], cwd=self.parent)
-			cmd = ['lzip', '--best', tar_pth]
+			cmd = ['lzip', '--best', '--force', tar_pth]
 			subprocess.run([str(i) for i in cmd], cwd=self.parent)
 			if delete_original :
 				self.delete()
 		elif self.is_file() :
-			cmd = ['lzip', '--best', self]
+			cmd = ['lzip', '--best', '--force', self]
+			print(f"archiving \x1b[33m{self.name}\x1b[0m into \x1b[33m{self}.lz\x1b[0m")
 			subprocess.run([str(i) for i in cmd])
 			self.rename(dst_dir / dst_name)
 			if delete_original :

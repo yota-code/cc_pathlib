@@ -37,7 +37,7 @@ class _JSON_config_CONTEXT(dict) :
 		return self
 	
 	def sync(self) :
-		self.pth.save(self, filter_opt={"verbose":True})
+		self.pth.save(self, verbose=True)
 
 	def __exit__(self, exc_type, exc_value, traceback) :
 		self.sync()

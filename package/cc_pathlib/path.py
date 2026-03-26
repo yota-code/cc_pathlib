@@ -332,7 +332,15 @@ class Path(type(pathlib.Path())) :
 	def run_background(self, * cmd_args, ** other_args) :
 		cmd_header, cmd_line, call_args = self._run_setup(cmd_args, other_args)
 		subprocess.Popen(cmd_line, ** call_args)
+
+	def scandir(self) :
+		for d in os.scandir(self) :
+			yield d
 			
+	@property
+	def path(self) :
+		self
+
 	def hash(self) :
 		import hashlib
 		import base64
@@ -342,7 +350,7 @@ class Path(type(pathlib.Path())) :
 		key = base64.urlsafe_b64encode(hsh.digest()).decode('ascii')
 
 		return key
-		
+
 	def iter_on_suffix(self, * suffix_lst, skip_hidden_dir=True, follow_symlink_dir=False, yield_symlink_file=False, case_insensitive=True) :
 		"""
 			advanced reccursive iterator on files contained in a directory
@@ -361,7 +369,7 @@ class Path(type(pathlib.Path())) :
 
 		while root_que :
 			root_dir = root_que.popleft()
-			for sub in root_dir :
+			for sub in root_dir.scandir() :
 				if sub.is_file() :
 					if not yield_symlink_file and sub.is_symlink() :
 						continue
@@ -376,7 +384,7 @@ class Path(type(pathlib.Path())) :
 						continue
 					if not follow_symlink_dir and sub.is_symlink() :
 						continue
-					root_que.append(sub)
+					root_que.append(Path(sub))
 
 	def is_same(self, other) :
 		""" return true if both files have the same st_ino and st_dev

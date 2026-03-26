@@ -3,6 +3,8 @@
 import base64
 import hashlib
 import sys
+import time
+import xxhash
 
 from cc_pathlib import Path
 
@@ -54,17 +56,26 @@ class Insensitive() :
 	def scan(self, * suffix_lst) :
 		print(">>> Insensitive.scan()")
 
+		t_start = time.perf_counter()
+
 		for pth in self.base_dir.iter_on_suffix(* suffix_lst) :
 			p = pth.relative_to(self.base_dir)
-			k = str(p)
+			k = str(p).replace('\\', '/')
 			q = k.lower()
 			if k != q :
+				if q in self.f_map and self.f_map[q] != k :
+					raise KeyError(f"ambiguous files: {q} <-> {self.f_map[q]}")
 				self.f_map[q] = k
 
 		if self.cache_pth is not None :
 			self.cache_pth.save(self.f_map)
 			if self._debug :
 				self.cache_pth.with_suffix('.json').save(self.f_map, verbose=True)
+
+		t_stop = time.perf_counter()
+
+		if self._debug :
+			print(f"\t{t_stop - t_start:.4f} seconds")
 
 		return self
 

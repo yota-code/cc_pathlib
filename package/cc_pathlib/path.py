@@ -330,9 +330,25 @@ class Path(type(pathlib.Path())) :
 		return proc.returncode
 
 	def run_background(self, * cmd_args, ** other_args) :
+		# 
 		cmd_header, cmd_line, call_args = self._run_setup(cmd_args, other_args)
 		subprocess.Popen(cmd_line, ** call_args)
 			
+	def run_detached(self, * cmd_args, ** other_args) :
+		# the process in put in a detached mode, even if the main process is killed, the subprocess will continue
+		cmd_header, cmd_line, call_args = self._run_setup(cmd_args, other_args)
+		call_args |= {
+			"stdout": subprocess.DEVNULL,
+			"stderr": subprocess.DEVNULL,
+			"stdin": subprocess.DEVNULL,
+		}
+		if sys.platform == "win32":
+			kwargs["creationflags"] = 0x0000_0008  # DETACHED_PROCESS
+		else:
+			kwargs["start_new_session"] = True   # Linux/macOS detachment		
+		subprocess.Popen(cmd_line, ** call_args)
+
+
 	def hash(self) :
 		import hashlib
 		import base64

@@ -419,7 +419,7 @@ class Path(type(pathlib.Path())) :
 			) :
 				return smap == omap
 
-	def mako(self, dst_dir=None, src_dir=None, *, param=None) :
+	def mako(self, dst_dir=None, dst_name=None, src_dir=None, *, param=None, mdir=None) :
 		assert self.suffix == '.mako'
 
 		import mako.template
@@ -430,11 +430,15 @@ class Path(type(pathlib.Path())) :
 		if src_dir is None :
 			src_dir = self.parent
 
+		if dst_name is None :
+			dst_name = self.with_suffix('').name
+
+		print(self, self.is_file())
 		if self.is_file() :
 			src_pth = self.relative_to(src_dir)
-			dst_pth = dst_dir / src_pth.with_suffix('')
+			dst_pth = dst_dir / src_pth.parent / dst_name
 
-			mtf = mako.template.Template(filename=str(self))
+			mtf = mako.template.Template(filename=str(self), module_directory=mdir)
 			dst_pth.make_parents()
 			print(f"{src_pth} -> {dst_pth}")
 			try :
@@ -444,9 +448,7 @@ class Path(type(pathlib.Path())) :
 				dst_pth.write_text(f'Failed rendering ! {e}\n------\n{traceback.format_exc()}')
 
 			return dst_pth
-
 		elif self.is_dir() :
 			raise NotImplementedError
-
 		else :
 			raise FileNotFoundError

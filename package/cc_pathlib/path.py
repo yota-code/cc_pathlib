@@ -351,7 +351,7 @@ class Path(type(pathlib.Path())) :
 
 		return key
 
-	def iter_on_suffix(self, * suffix_lst, skip_hidden_dir=True, follow_symlink_dir=False, yield_symlink_file=False, case_insensitive=True) :
+	def iter_on_suffix(self, * suffix_lst, skip_hidden_dir=True, follow_symlink_dir=False, yield_symlink_file=False, case_insensitive=True, as_direntry=False) :
 		"""
 			advanced reccursive iterator on files contained in a directory
 			implemented without recursion
@@ -364,6 +364,7 @@ class Path(type(pathlib.Path())) :
 
 		root_pth = self.resolve()
 		assert root_pth.is_dir(), f"{root_pth} is not an existing dir"
+		
 		root_que = collections.deque()
 		root_que.append(root_pth)
 
@@ -376,9 +377,9 @@ class Path(type(pathlib.Path())) :
 					if suffix_set :
 						for suffix in suffix_set :
 							if sub.name.endswith(suffix) or ( case_insensitive and sub.name.lower().endswith(suffix) ) :
-								yield sub
+								yield sub if as_direntry else Path(sub)
 					else :
-						yield sub
+						yield sub if as_direntry else Path(sub)
 				elif sub.is_dir() :
 					if sub.name.startswith('.') and skip_hidden_dir :
 						continue

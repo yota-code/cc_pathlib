@@ -470,6 +470,8 @@ class Path(type(pathlib.Path())):
 
 		# Open the files in binary mode
 		with self.open("rb") as sfid, other.open("rb") as ofid:
+			import mmap
+
 			with (
 				mmap.mmap(sfid.fileno(), 0, access=mmap.ACCESS_READ) as smap,
 				mmap.mmap(ofid.fileno(), 0, access=mmap.ACCESS_READ) as omap,

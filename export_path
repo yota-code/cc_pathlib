@@ -6,7 +6,7 @@ else
 	SEP=':'
 fi
 
-source_DIR=$0:A:h
+source_DIR=$(dirname $(realpath ${BASH_SOURCE[0]:-$0}))
 
 function push_pythonpath() {
 	echo "    pythonpath += $1"
@@ -17,8 +17,8 @@ function push_pythonpath() {
 
 push_pythonpath ${source_DIR}
 
-typeset -T PYTHONPATH pythonpath
+# typeset -T PYTHONPATH pythonpath
 
-typeset -U pythonpath
-typeset -U path
+# typeset -U pythonpath
+# typeset -U path
 

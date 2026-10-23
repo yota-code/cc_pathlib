@@ -4,16 +4,15 @@ import base64
 import enum
 import hashlib
 
-import xxhash
-
 from cc_pathlib import Path
 
 
-class FileStatus(enum.IntEnum) :
+class FileStatus(enum.IntEnum):
 	UNCHANGED = 0
 	MODIFIED = 1
 	DELETED = -1
 	CREATED = 2
+
 
 """
 Il faut faire une liste de tous les fichiers surveillés
@@ -24,34 +23,36 @@ name -> inode
 inode -> mtime
 
 """
-	
-class Attentive() :
 
+
+class Attentive:
 	_debug = True
 
-	def __init__(self, base_dir:Path, cache_arg=True) :
+	def __init__(self, base_dir: Path, cache_arg=True):
 		self.base_dir = Path(base_dir).resolve()
 
 		assert self.base_dir.is_dir()
-		
-		if cache_arg :
-			if isinstance(cache_arg, str) or isinstance(cache_arg, Path) :
+
+		if cache_arg:
+			if isinstance(cache_arg, str) or isinstance(cache_arg, Path):
 				cache_dir = Path(cache_arg).resolve().make_dirs()
-			else :
-				cache_dir = (Path('/tmp') / f"pathlib_{hash(self.base_dir)}").make_dirs('private')
-			self.cache_pth = cache_dir / 'attentive.pickle'
+			else:
+				cache_dir = (Path("/tmp") / f"pathlib_{hash(self.base_dir)}").make_dirs(
+					"private"
+				)
+			self.cache_pth = cache_dir / "attentive.pickle"
 
 			# self.m est un un dictionnaire file_local -> hash pour garder une mémoire des fichiers déjà scannés
-			if self.cache_pth.is_file() :
+			if self.cache_pth.is_file():
 				self.m = self.cache_pth.load()
-			else :
+			else:
 				self.m = dict()
-		else :
+		else:
 			# cache disabled completely
 			self.cache_pth = None
 
-		self.z = dict() # list of tasks in progress
-		self.d = set() # set of deleted files
+		self.z = dict()  # list of tasks in progress
+		self.d = set()  # set of deleted files
 
 		# for file_local in self.m :
 		# 	pth = self.base_dir / file_local
@@ -60,59 +61,82 @@ class Attentive() :
 		# 		self.m.pop(file_local, None)
 		# 		self.d.add(file_local)
 
-	def save(self) :
-		if self._debug :
-			self.cache_pth.with_suffix('.tsv').save(
-				[["===  Doing  ===",],] +
-				[[base64.urlsafe_b64encode(self.z[k]).decode("ascii"), k] for k in sorted(self.z)] +
-				[["===  Done  ===",],] + 
-				[[base64.urlsafe_b64encode(self.m[k]).decode("ascii"), k] for k in sorted(self.m)] +
-				[["===  Deleted  ===",],] + 
-				[[base64.urlsafe_b64encode(self.d[k]).decode("ascii"), k] for k in sorted(self.d)]
+	def save(self):
+		if self._debug:
+			self.cache_pth.with_suffix(".tsv").save(
+				[
+					[
+						"===  Doing  ===",
+					],
+				]
+				+ [
+					[base64.urlsafe_b64encode(self.z[k]).decode("ascii"), k]
+					for k in sorted(self.z)
+				]
+				+ [
+					[
+						"===  Done  ===",
+					],
+				]
+				+ [
+					[base64.urlsafe_b64encode(self.m[k]).decode("ascii"), k]
+					for k in sorted(self.m)
+				]
+				+ [
+					[
+						"===  Deleted  ===",
+					],
+				]
+				+ [
+					[base64.urlsafe_b64encode(self.d[k]).decode("ascii"), k]
+					for k in sorted(self.d)
+				]
 			)
 		self.cache_pth.save(self.m)
 
-	def todo(self, local_pth:str) :
+	def todo(self, local_pth: str):
 		"""
 		1. open the file located at self.base_dir / file_local
 		2. compute the hash and compare it with the cached one
 		3. if different return the content of the file else return None
 		4. if a file is returned, file_local is stored in the "in progress" map
 		"""
+		import xxhash
 
 		# print(f"Attentive.todo({file_local})")
 		pth = self.base_dir / local_pth
 
-		if not pth.is_file() :
+		if not pth.is_file():
 			# the file was deleted
 			self.d[local_pth] = None
-			return FileStatus.DELETED, b''
+			return FileStatus.DELETED, b""
 
-		siz = (pth.stat().st_size & 0xFFFF_FFFF).to_bytes(4, 'little')
+		siz = (pth.stat().st_size & 0xFFFF_FFFF).to_bytes(4, "little")
 		byt = pth.read_bytes()
 		hsh = xxhash.xxh3_128(byt).digest()
 		key = (siz + hsh)[:-2]
 
-		if local_pth not in self.m :
+		if local_pth not in self.m:
 			self.z[local_pth] = key
 			return FileStatus.CREATED, byt
 
-		if self.m[local_pth] == key :
-			return FileStatus.UNCHANGED, b''
+		if self.m[local_pth] == key:
+			return FileStatus.UNCHANGED, b""
 
 		self.z[local_pth] = key
 		return FileStatus.MODIFIED, byt
-	
-	def done(self, local_pth) :
-		if local_pth in self.d :
+
+	def done(self, local_pth):
+		if local_pth in self.d:
 			del self.d[local_pth]
 			self.m.pop(local_pth, None)
-		elif local_pth in self.z :
+		elif local_pth in self.z:
 			key = self.z.pop(local_pth, None)
 			self.m[local_pth] = key
-		else :
-			pass # this file was not processed, but close without a fuss nonetheless
+		else:
+			pass  # this file was not processed, but close without a fuss nonetheless
 			# assert local_pth in self.m
+
 
 # class Attentive() :
 
@@ -161,7 +185,7 @@ class Attentive() :
 # 		if self._debug :
 # 			self.cache_pth.with_suffix('.tsv').save(
 # 				[[f"{self.m[k]:024X}", k] for k in sorted(self.z)] +
-# 				[['-'*8,],] + 
+# 				[['-'*8,],] +
 # 				[[f"{self.m[k]:024X}", k] for k in sorted(self.m)]
 # 			)
 # 		self.cache_pth.save(self.m)
@@ -178,7 +202,7 @@ class Attentive() :
 # 			return None, b''
 
 # 	def get_key_file(self, file_local) :
-# 		""" return the key, and the file content itself, if it was 
+# 		""" return the key, and the file content itself, if it was
 
 # 	def todo(self, file_local) :
 # 		"""
@@ -194,7 +218,7 @@ class Attentive() :
 # 			return None
 # 		self.z[file_local] = key
 # 		return bin
-	
+
 # 	def done(self, file_local) :
 # 		key = self.z.pop(file_local, None)
 # 		if key is not None :

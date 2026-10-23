@@ -4,12 +4,13 @@ import base64
 import hashlib
 import sys
 import time
+
 import xxhash
 
 from cc_pathlib import Path
 
-class Insensitive() :
 
+class Insensitive:
 	_debug = True
 
 	""" case insensitive path solver
@@ -20,78 +21,85 @@ class Insensitive() :
 	fichier sous Windows sont insensibles à la casse, alors que linux non.
 	"""
 
-	def __init__(self, base_dir:Path, cache_arg=False) :
+	def __init__(self, base_dir: Path, cache_arg=False):
 		# TODO: la liste des suffixes devrait être en argument de __init__, ou alors il faut un système de cache plus malin...
 		self.base_dir = Path(base_dir).resolve()
 
-		assert self.base_dir.is_dir(), f"ASSERT:the base_dir must be an existing director:{self.base_dir}"
+		assert self.base_dir.is_dir(), (
+			f"ASSERT:the base_dir must be an existing director:{self.base_dir}"
+		)
 
-		self.f_map = dict() # str(pth.resolve().relative_to(self.base_dir)).lower() -> str(pth.resolve().relative_to(self.base_dir))
+		self.f_map = dict()  # str(pth.resolve().relative_to(self.base_dir)).lower() -> str(pth.resolve().relative_to(self.base_dir))
 
-		if cache_arg :
-			if isinstance(cache_arg, str) or isinstance(cache_arg, Path) :
+		if cache_arg:
+			if isinstance(cache_arg, str) or isinstance(cache_arg, Path):
 				# if a cache_arg looks like a path, use it
 				cache_dir = Path(cache_arg).resolve().make_dirs()
-			else :
+			else:
 				# else, create a path based on a hash of base_dir
-				cache_dir = (Path('/tmp') / f"pathlib_{hash(self.base_dir)}").make_dirs('private')
-			
-			self.cache_pth = cache_dir / f"insensitive.pickle"
+				cache_dir = (Path("/tmp") / f"pathlib_{hash(self.base_dir)}").make_dirs(
+					"private"
+				)
 
-			if self._debug :
-				print(f"{__class__.__name__}.__init__() :: cache_pth = {self.cache_pth}")
+			self.cache_pth = cache_dir / "insensitive.pickle"
 
-			if self.cache_pth.is_file() :
-				if self._debug :
+			if self._debug:
+				print(
+					f"{__class__.__name__}.__init__() :: cache_pth = {self.cache_pth}"
+				)
+
+			if self.cache_pth.is_file():
+				if self._debug:
 					print(f"{__class__.__name__}.__init__() :: CACHE FOUND ... LOADING")
 				self.f_map = self.cache_pth.load()
 
-		else :
+		else:
 			# if cache_arg is False, the cache is disabled completely
-			if self._debug :
+			if self._debug:
 				print(f"{__class__.__name__}.__init__() :: cache disabled")
 
 			self.cache_pth = None
 
-	def scan(self, * suffix_lst) :
+	def scan(self, *suffix_lst):
 		print(">>> Insensitive.scan()")
 
 		t_start = time.perf_counter()
 
-		for pth in self.base_dir.iter_on_suffix(* suffix_lst) :
+		for pth in self.base_dir.iter_on_suffix(*suffix_lst):
 			p = pth.relative_to(self.base_dir)
-			k = str(p).replace('\\', '/')
+			k = str(p).replace("\\", "/")
 			q = k.lower()
-			if k != q :
-				if q in self.f_map and self.f_map[q] != k :
+			if k != q:
+				if q in self.f_map and self.f_map[q] != k:
 					raise KeyError(f"ambiguous files: {q} <-> {self.f_map[q]}")
 				self.f_map[q] = k
 
-		if self.cache_pth is not None :
+		if self.cache_pth is not None:
 			self.cache_pth.save(self.f_map)
-			if self._debug :
-				self.cache_pth.with_suffix('.json').save(self.f_map, verbose=True)
+			if self._debug:
+				self.cache_pth.with_suffix(".json").save(self.f_map, verbose=True)
 
 		t_stop = time.perf_counter()
 
-		if self._debug :
+		if self._debug:
 			print(f"\t{t_stop - t_start:.4f} seconds")
 
 		return self
 
-	def __getitem__(self, key:str) :
+	def __getitem__(self, key: str):
 		# return the key with the correct case
 		return self.f_map.get(str(key).lower(), key)
-		
-	def __truediv__(self, key:str) :
+
+	def __truediv__(self, key: str):
 		# resolve the full path, including the base_dir
 		return self.base_dir / self[key]
 
-if __name__ == '__main__' :
+
+if __name__ == "__main__":
 	import time
 
 	t0 = time.time()
 	base_dir = Path(sys.argv[1]).resolve()
-	u = Insensitive(base_dir).scan('.etp', '.saofd', '.ann', '.ssl', '.vsw')
+	u = Insensitive(base_dir).scan(".etp", ".saofd", ".ann", ".ssl", ".vsw")
 	t1 = time.time()
 	print(t1 - t0)

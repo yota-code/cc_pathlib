@@ -369,9 +369,17 @@ class Path(type(pathlib.Path())):
 		return proc.returncode
 
 	def run_background(self, *cmd_args, **other_args):
-		# start a subprocess immediatly, yet if the parent is killed, you get a zombie
+		# the process is spawn as a child process, could be killed if the parent crashes
 		cmd_header, cmd_line, call_args = self._run_setup(cmd_args, other_args)
 		subprocess.Popen(cmd_line, **call_args)
+
+	def scandir(self):
+		for d in os.scandir(self):
+			yield d
+
+	@property
+	def path(self):
+		self
 
 	def run_detached(self, *cmd_args, **other_args):
 		# the process in put in a detached mode, even if the main process is killed, the subprocess will continue
@@ -382,9 +390,9 @@ class Path(type(pathlib.Path())):
 			"stdin": subprocess.DEVNULL,
 		}
 		if sys.platform == "win32":
-			kwargs["creationflags"] = 0x0000_0008  # DETACHED_PROCESS
+			call_args["creationflags"] = 0x0000_0008  # DETACHED_PROCESS
 		else:
-			kwargs["start_new_session"] = True  # Linux/macOS detachment
+			call_args["start_new_session"] = True  # Linux/macOS detachment
 		subprocess.Popen(cmd_line, **call_args)
 
 	def hash(self):
@@ -404,6 +412,7 @@ class Path(type(pathlib.Path())):
 		follow_symlink_dir=False,
 		yield_symlink_file=False,
 		case_insensitive=True,
+		as_direntry=False,
 	):
 		"""
 		advanced reccursive iterator on files contained in a directory
@@ -417,12 +426,13 @@ class Path(type(pathlib.Path())):
 
 		root_pth = self.resolve()
 		assert root_pth.is_dir(), f"{root_pth} is not an existing dir"
+
 		root_que = collections.deque()
 		root_que.append(root_pth)
 
 		while root_que:
 			root_dir = root_que.popleft()
-			for sub in root_dir:
+			for sub in root_dir.scandir():
 				if sub.is_file():
 					if not yield_symlink_file and sub.is_symlink():
 						continue
@@ -431,15 +441,15 @@ class Path(type(pathlib.Path())):
 							if sub.name.endswith(suffix) or (
 								case_insensitive and sub.name.lower().endswith(suffix)
 							):
-								yield sub
+								yield sub if as_direntry else Path(sub)
 					else:
-						yield sub
+						yield sub if as_direntry else Path(sub)
 				elif sub.is_dir():
 					if sub.name.startswith(".") and skip_hidden_dir:
 						continue
 					if not follow_symlink_dir and sub.is_symlink():
 						continue
-					root_que.append(sub)
+					root_que.append(Path(sub))
 
 	def is_same(self, other):
 		"""return true if both files have the same st_ino and st_dev

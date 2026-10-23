@@ -1,12 +1,18 @@
 #!/usr/bin/env zsh
 
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+	SEP=';'
+else
+	SEP=':'
+fi
+
 source_DIR=$0:A:h
 
 function push_pythonpath() {
-	pth=$1:A
-	echo "+ ${pth}"
-	export PATH=${pth}/script:$PATH
-	export PYTHONPATH=${pth}/package:$PYTHONPATH
+	echo "    pythonpath += $1"
+	pth=$(realpath $1)
+	export PATH=${pth}/script${PATH:+:$PATH}
+	export PYTHONPATH=${pth}/package${PYTHONPATH:+${SEP}$PYTHONPATH}
 }
 
 push_pythonpath ${source_DIR}

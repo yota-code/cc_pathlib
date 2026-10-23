@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cc-pathlib"
+version = "0.2.0"
+authors = [
+	{ name = "Yoochan", email = "yota.news@gmail.com" }
+]
+description = "a supercharged implementation of pathlib.Path()"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+	"Programming Language :: Python :: 3",
+	"Development Status :: 4 - Beta",
+	"License :: OSI Approved :: BSD License",
+	"License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+	"Operating System :: OS Independent",
+]
+
+[project.optional-dependencies]
+all = [
+	"brotli",
+	"xxhash",
+]
+
+[project.urls]
+Homepage = "https://github.com/yota-code/cc_pathlib.git"
+
+[tool.setuptools]
+package-dir = {"" = "package"}
+
+[tool.setuptools.packages.find]
+where = ["package"]
+
+[tool.ruff.format]
+indent-style = "tab"
